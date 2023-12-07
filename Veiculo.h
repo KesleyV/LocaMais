@@ -19,7 +19,8 @@ void exibir_veiculos();
 void pesquisar_veiculo(int codigo_veiculo);
 void remover_veiculo(int codigo);
 void exibir_veiculos_alugados();
-void salvar_veiculos(Veiculo veiculos[], int num_veiculos);
-void carregar_veiculos(Veiculo veiculos[], int *num_veiculos);
+void remover_veiculo_da_manutencao(int codigo_veiculo);
+void colocar_veiculo_em_manutencao(int codigo_veiculo);
+void exibir_veiculos_em_manutencao();
 
 #endif

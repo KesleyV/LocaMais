@@ -20,11 +20,8 @@ void cadastrar_locacao(Cliente clientes[], int num_clientes, Veiculo veiculos[],
 void dar_baixa_locacao(Locacao locacoes[], int *num_locacoes, Veiculo veiculos[], Cliente clientes[], int *num_veiculos, int *num_clientes);
 void mostrar_locacoes_cliente(Locacao locacoes[], int num_locacoes, int codigo_cliente);
 int diferenca_dias(const char *data_retirada, const char *data_devolucao);
-//void relatorio_faturamento(Locacao locacoes[], int num_locacoes, Veiculo veiculos[], int num_veiculos);
-void calcular_pontos_fidelidade();
+void calcular_pontos_fidelidade(int codigo_cliente, int diarias);
 void remover_locacao(Locacao locacoes[], int *num_locacoes, int index_locacao);
-void carregar_locacoes(Locacao locacoes[], int *num_locacoes);
-void salvar_locacoes(Locacao locacoes[], int num_locacoes);
 void exibir_todas_locacoes();
 void premiar_clientes();
 

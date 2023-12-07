@@ -4,15 +4,10 @@
 #include "Constants.h"
 #include "Locacao.h"
 
-//funções auxiliares
+// funções auxiliares
 int veiculo_existe(int codigo)
 {
     FILE *arquivo_veiculos = fopen("veiculos.bin", "rb");
-    if (arquivo_veiculos == NULL)
-    {
-        printf("Erro ao abrir o arquivo de veículos para leitura.\n");
-        return 0; 
-    }
 
     Veiculo veiculo_encontrado;
     int veiculo_existe = 0;
@@ -31,11 +26,50 @@ int veiculo_existe(int codigo)
     return veiculo_existe;
 }
 
+void atualizar_status(int codigo_veiculo, const char *novo_status)
+{
+    FILE *arquivo_veiculos = fopen("veiculos.bin", "rb+");
+    if (arquivo_veiculos == NULL)
+    {
+        printf("Erro ao abrir o arquivo de veiculos para atualizacao.\n");
+        return;
+    }
+
+    fseek(arquivo_veiculos, 0, SEEK_SET);
+
+    Veiculo veiculo;
+
+    while (fread(&veiculo, sizeof(Veiculo), 1, arquivo_veiculos) == 1)
+    {
+        if (veiculo.codigo == codigo_veiculo)
+        {
+            if (strcmp(veiculo.status, "Alugado") != 0)
+            {
+                strcpy(veiculo.status, novo_status);
+
+                fseek(arquivo_veiculos, -sizeof(Veiculo), SEEK_CUR);
+                fwrite(&veiculo, sizeof(Veiculo), 1, arquivo_veiculos);
+
+                fclose(arquivo_veiculos);
+                return;
+            }
+            else
+            {
+                printf("Nao e possivel realizar esta operacao em veiculos alugados");
+            }
+        }
+    }
+
+    fclose(arquivo_veiculos);
+    printf("Veiculo com codigo %d nao encontrado.\n", codigo_veiculo);
+}
+
+// funções principais
 void cadastrar_veiculo(Veiculo veiculos[], int *num_veiculos, int codigo, const char *descricao, const char *modelo, const char *cor, const char *placa, float valor_diaria, int ocupantes, const char *status)
 {
     if (veiculo_existe(codigo))
     {
-        printf("Veículo já cadastrado.\n");
+        printf("Veiculo ja cadastrado.\n");
         return;
     }
 
@@ -63,26 +97,20 @@ void cadastrar_veiculo(Veiculo veiculos[], int *num_veiculos, int codigo, const 
     (*num_veiculos)++;
 
     FILE *arquivo_veiculos = fopen("veiculos.bin", "ab+");
-    if (arquivo_veiculos == NULL)
-    {
-        printf("Erro ao abrir o arquivo de veículos para escrita.\n");
-        return;
-    }
 
     fwrite(&novo_veiculo, sizeof(Veiculo), 1, arquivo_veiculos);
 
     fclose(arquivo_veiculos);
 
-    printf("Veículo cadastrado com sucesso.\n");
+    printf("Veiculo cadastrado com sucesso.\n");
 }
-
 
 void exibir_veiculos()
 {
     FILE *arquivo_veiculos = fopen("veiculos.bin", "rb");
     if (arquivo_veiculos == NULL)
     {
-        printf("Erro ao abrir o arquivo de veículos para leitura.\n");
+        printf("Erro ao abrir o arquivo de veiculos para leitura.\n");
         return;
     }
 
@@ -90,7 +118,7 @@ void exibir_veiculos()
 
     while (fread(&veiculo, sizeof(Veiculo), 1, arquivo_veiculos) == 1)
     {
-        printf("Código: %d\n", veiculo.codigo);
+        printf("Codigo: %d\n", veiculo.codigo);
         printf("Descricao: %s\n", veiculo.descricao);
         printf("Modelo: %s\n", veiculo.modelo);
         printf("Cor: %s\n", veiculo.cor);
@@ -104,15 +132,14 @@ void exibir_veiculos()
     fclose(arquivo_veiculos);
 }
 
-
 void pesquisar_veiculo(int codigo_veiculo)
 {
-    const char *nome_arquivo = "veiculos.bin"; 
+    const char *nome_arquivo = "veiculos.bin";
     FILE *arquivo_veiculos = fopen(nome_arquivo, "rb");
 
     if (arquivo_veiculos == NULL)
     {
-        printf("Erro ao abrir o arquivo de veículos para leitura.\n");
+        printf("Erro ao abrir o arquivo de veiculos para leitura.\n");
         return;
     }
 
@@ -143,17 +170,23 @@ void pesquisar_veiculo(int codigo_veiculo)
 
 void remover_veiculo(int codigo)
 {
+    if (!veiculo_existe(codigo))
+    {
+        printf("Veiculo com o codigo especificado nao existe.\n");
+        return;
+    }
+
     FILE *arquivo_veiculos = fopen("veiculos.bin", "rb");
     if (arquivo_veiculos == NULL)
     {
-        printf("Erro ao abrir o arquivo de veículos para leitura.\n");
+        printf("Erro ao abrir o arquivo de veiculos para leitura.\n");
         return;
     }
 
     FILE *novo_arquivo = fopen("temp.bin", "wb");
     if (novo_arquivo == NULL)
     {
-        printf("Erro ao criar o arquivo temporário para escrita.\n");
+        printf("Erro ao criar o arquivo temporario para escrita.\n");
         fclose(arquivo_veiculos);
         return;
     }
@@ -177,6 +210,10 @@ void remover_veiculo(int codigo)
         {
             printf("Erro ao renomear o arquivo temporário.\n");
         }
+        else
+        {
+            printf("Veiculo removido com sucesso.\n");
+        }
     }
     else
     {
@@ -186,12 +223,12 @@ void remover_veiculo(int codigo)
 
 void exibir_veiculos_alugados()
 {
-    const char *nome_arquivo = "veiculos.bin";  
+    const char *nome_arquivo = "veiculos.bin";
     FILE *arquivo_veiculos = fopen(nome_arquivo, "rb");
 
     if (arquivo_veiculos == NULL)
     {
-        printf("Erro ao abrir o arquivo de veículos para leitura.\n");
+        printf("Erro ao abrir o arquivo de veiculos para leitura.\n");
         return;
     }
 
@@ -216,19 +253,48 @@ void exibir_veiculos_alugados()
     fclose(arquivo_veiculos);
 }
 
+void exibir_veiculos_em_manutencao()
+{
+    const char *nome_arquivo = "veiculos.bin";
+    FILE *arquivo_veiculos = fopen(nome_arquivo, "rb");
 
-void salvar_veiculos(Veiculo veiculos[], int num_veiculos) {
-    FILE *arquivo = fopen("veiculos.bin", "wb");
-    if (arquivo != NULL) {
-        fwrite(veiculos, sizeof(Veiculo), num_veiculos, arquivo);
-        fclose(arquivo);
+    if (arquivo_veiculos == NULL)
+    {
+        printf("Erro ao abrir o arquivo de veiculos para leitura.\n");
+        return;
     }
+
+    Veiculo veiculo;
+
+    while (fread(&veiculo, sizeof(Veiculo), 1, arquivo_veiculos) == 1)
+    {
+        if (strcmp(veiculo.status, "Manutencao") == 0)
+        {
+            printf("Codigo: %d\n", veiculo.codigo);
+            printf("Descricao: %s\n", veiculo.descricao);
+            printf("Modelo: %s\n", veiculo.modelo);
+            printf("Cor: %s\n", veiculo.cor);
+            printf("Placa: %s\n", veiculo.placa);
+            printf("Valor diario: %.2f\n", veiculo.valor_diaria);
+            printf("Ocupantes: %d\n", veiculo.ocupantes);
+            printf("Status: %s\n", veiculo.status);
+            printf("--------------------------\n");
+        }
+    }
+
+    fclose(arquivo_veiculos);
 }
 
-void carregar_veiculos(Veiculo veiculos[], int *num_veiculos) {
-    FILE *arquivo = fopen("veiculos.bin", "rb");
-    if (arquivo != NULL) {
-        fread(veiculos, sizeof(Veiculo), MAX_VEICULOS, arquivo);
-        fclose(arquivo);
-    }
+void remover_veiculo_da_manutencao(int codigo_veiculo)
+{
+    atualizar_status(codigo_veiculo, "Disponivel");
+
+    printf("\nO veiculo de codigo %d esta disponivel.\n", codigo_veiculo);
+}
+
+void colocar_veiculo_em_manutencao(int codigo_veiculo)
+{
+    atualizar_status(codigo_veiculo, "Manutencao");
+
+    printf("\nO veiculo de codigo %d foi enviado para a manutencao.\n", codigo_veiculo);
 }

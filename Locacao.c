@@ -3,6 +3,7 @@
 #include "locacao.h"
 #include "veiculo.h"
 #include "Cliente.h"
+#include "Menu.h"
 #include <time.h>
 #include "constants.h"
 
@@ -28,11 +29,6 @@ int diferenca_dias(const char *data_retirada, const char *data_devolucao)
 int locacao_existe(int codigo_locacao)
 {
     FILE *arquivo_locacoes = fopen("locacoes.bin", "rb");
-    if (arquivo_locacoes == NULL)
-    {
-        printf("Erro ao abrir o arquivo de locações para leitura.\n");
-        return 0;
-    }
 
     Locacao locacao_atual;
     int locacao_existe = 0;
@@ -283,12 +279,61 @@ void debitar_pontos_fidelidade(int codigo_cliente)
     printf("Cliente com codigo %d nao encontrado.\n", codigo_cliente);
 }
 
+int validar_data_entrega(const char *data_retirada, const char *data_devolucao)
+{
+    int dia_ret, mes_ret, ano_ret, dia_dev, mes_dev, ano_dev;
+
+    sscanf(data_retirada, "%d/%d/%d", &dia_ret, &mes_ret, &ano_ret);
+    sscanf(data_devolucao, "%d/%d/%d", &dia_dev, &mes_dev, &ano_dev);
+
+    if (ano_dev < ano_ret || (ano_dev == ano_ret && (mes_dev < mes_ret || (mes_dev == mes_ret && dia_dev < dia_ret))))
+    {
+        return 0;
+    }
+
+    return 1;
+}
+
+void remover_locacao(Locacao locacoes[], int *num_locacoes, int codigo_locacao)
+{
+    FILE *arquivo_entrada = fopen("locacoes.bin", "rb");
+    if (arquivo_entrada == NULL)
+    {
+        printf("Erro ao abrir o arquivo de locacoes para leitura.\n");
+        return;
+    }
+
+    FILE *arquivo_temporario = fopen("temp_locacoes.bin", "wb");
+    if (arquivo_temporario == NULL)
+    {
+        printf("Erro ao abrir o arquivo temporário para escrita.\n");
+        fclose(arquivo_entrada);
+        return;
+    }
+
+    Locacao locacao_atual;
+
+    while (fread(&locacao_atual, sizeof(Locacao), 1, arquivo_entrada) == 1)
+    {
+        if (locacao_atual.codigo != codigo_locacao)
+        {
+            fwrite(&locacao_atual, sizeof(Locacao), 1, arquivo_temporario);
+        }
+    }
+
+    fclose(arquivo_entrada);
+    fclose(arquivo_temporario);
+
+    remove("locacoes.bin");
+    rename("temp_locacoes.bin", "locacoes.bin");
+}
+
 // funções principais
 void cadastrar_locacao(Cliente clientes[], int num_clientes, Veiculo veiculos[], int num_veiculos, Locacao locacoes[], int *num_locacoes, int codigo_locacao, const char *data_retirada, const char *data_devolucao, int seguro, int codigo_cliente, int num_ocupantes)
 {
     if (locacao_existe(codigo_locacao))
     {
-        printf("Código de locacao ja existe.\n");
+        printf("Codigo de locacao ja existe.\n");
         return;
     }
 
@@ -327,11 +372,6 @@ void cadastrar_locacao(Cliente clientes[], int num_clientes, Veiculo veiculos[],
     }
 
     FILE *arquivo_locacoes = fopen("locacoes.bin", "ab+");
-    if (arquivo_locacoes == NULL)
-    {
-        printf("Erro ao abrir o arquivo de locações para escrita.\n");
-        return;
-    }
 
     float diaria = diariaVeiculo(veiculo_disponivel);
 
@@ -345,7 +385,7 @@ void cadastrar_locacao(Cliente clientes[], int num_clientes, Veiculo veiculos[],
     nova_locacao.quantidade_dias = diferenca_dias(data_retirada, data_devolucao);
     nova_locacao.valor_aluguel = calcular_valor_aluguel(nova_locacao.quantidade_dias, diaria, nova_locacao.seguro);
 
-    printf("Locação realizada com sucesso\n");
+    printf("Locacao realizada com sucesso\n");
 
     calcular_pontos_fidelidade(codigo_cliente, nova_locacao.quantidade_dias);
 
@@ -379,7 +419,7 @@ void dar_baixa_locacao(Locacao locacoes[], int *num_locacoes, Veiculo veiculos[]
     FILE *arquivo_locacoes = fopen("locacoes.bin", "rb+");
     if (arquivo_locacoes == NULL)
     {
-        printf("Erro ao abrir o arquivo de locações para leitura/escrita.\n");
+        printf("Erro ao abrir o arquivo de locacoes para leitura/escrita.\n");
         return;
     }
 
@@ -395,7 +435,6 @@ void dar_baixa_locacao(Locacao locacoes[], int *num_locacoes, Veiculo veiculos[]
             break;
         }
     }
-    printf("%d\n", codigo_veiculo);
 
     if (index_locacao == -1)
     {
@@ -416,7 +455,7 @@ void dar_baixa_locacao(Locacao locacoes[], int *num_locacoes, Veiculo veiculos[]
 
     if (valor_diaria == -1)
     {
-        printf("Veículo não encontrado.\n");
+        printf("Veiculo nao encontrado.\n");
         fclose(arquivo_locacoes);
         return;
     }
@@ -426,7 +465,7 @@ void dar_baixa_locacao(Locacao locacoes[], int *num_locacoes, Veiculo veiculos[]
 
     if (fread(&locacao_modificada, sizeof(Locacao), 1, arquivo_locacoes) != 1)
     {
-        printf("Erro ao ler a locação do arquivo.\n");
+        printf("Erro ao ler a locacao do arquivo.\n");
         fclose(arquivo_locacoes);
         return;
     }
@@ -434,8 +473,20 @@ void dar_baixa_locacao(Locacao locacoes[], int *num_locacoes, Veiculo veiculos[]
     locacao_modificada.valor_aluguel = calcular_valor_aluguel(locacao_modificada.quantidade_dias, valor_diaria, locacao_modificada.seguro);
 
     char data_entrega[11];
-    printf("Digite a data de entrega (formato: dd/mm/yyyy): ");
-    scanf("%s", data_entrega);
+    do
+    {
+        printf("Digite a data de entrega (formato: dd/mm/yyyy): ");
+        if (scanf("%s", data_entrega) != 1 || !validarFormatoData(data_entrega) || !validar_data_entrega(locacao_modificada.data_devolucao, data_entrega))
+        {
+            printf("Entrada invalida. Formato da data incorreto ou intervalo inválido.\n");
+            while (getchar() != '\n')
+                ;
+        }
+        else
+        {
+            break;
+        }
+    } while (1);
 
     int dif_dias = diferenca_dias(locacao_modificada.data_devolucao, data_entrega);
     if (dif_dias > 0)
@@ -451,7 +502,7 @@ void dar_baixa_locacao(Locacao locacoes[], int *num_locacoes, Veiculo veiculos[]
 
     atualizar_status_veiculo(locacao_modificada.codigo_veiculo, "Disponivel");
 
-    printf("Entrega do veículo realizada com sucesso. O valor total foi de %.2f.\n", locacao_modificada.valor_aluguel);
+    printf("Entrega do veiculo realizada com sucesso. O valor total foi de %.2f.\n", locacao_modificada.valor_aluguel);
 
     remover_locacao(locacoes, num_locacoes, codigo_locacao);
 }
@@ -466,13 +517,6 @@ void exibir_todas_locacoes()
         printf("Erro ao abrir o arquivo de locacoes para leitura.\n");
         return;
     }
-
-    Cliente clientes[MAX_CLIENTES];
-    Veiculo veiculos[MAX_VEICULOS];
-    int num_clientes, num_veiculos;
-
-    carregar_clientes(clientes, &num_clientes);
-    carregar_veiculos(veiculos, &num_veiculos);
 
     printf("\nLOCACOES:\n");
 
@@ -490,7 +534,7 @@ void exibir_todas_locacoes()
         printf("Veiculo: ");
         exibir_veiculo_por_codigo(locacao_atual.codigo_veiculo);
 
-        printf("Seguro: %s\n", (locacao_atual.seguro == 1) ? "Sim" : "Não");
+        printf("Seguro: %s\n", (locacao_atual.seguro == 1) ? "Sim" : "Nao");
         printf("Quantidade de Dias: %d\n", locacao_atual.quantidade_dias);
         printf("Valor do Aluguel: %.2f\n", locacao_atual.valor_aluguel);
         printf("--------------------------\n");
@@ -501,12 +545,12 @@ void exibir_todas_locacoes()
 
 void mostrar_locacoes_cliente(Locacao locacoes[], int num_locacoes, int codigo_cliente)
 {
-    printf("Locações do cliente:\n");
+    printf("Locacoes do cliente:\n");
 
     FILE *arquivo_locacoes = fopen("locacoes.bin", "rb");
     if (arquivo_locacoes == NULL)
     {
-        printf("Erro ao abrir o arquivo de locações para leitura.\n");
+        printf("Erro ao abrir o arquivo de locacoes para leitura.\n");
         return;
     }
 
@@ -526,7 +570,7 @@ void mostrar_locacoes_cliente(Locacao locacoes[], int num_locacoes, int codigo_c
             printf("Veiculo: ");
             exibir_veiculo_por_codigo(locacao_atual.codigo_veiculo);
 
-            printf("Seguro: %s\n", (locacao_atual.seguro == 1) ? "Sim" : "Não");
+            printf("Seguro: %s\n", (locacao_atual.seguro == 1) ? "Sim" : "Nao");
             printf("Quantidade de Dias: %d\n", locacao_atual.quantidade_dias);
             printf("Valor do Aluguel: %.2f\n", locacao_atual.valor_aluguel);
             printf("--------------------------\n");
@@ -560,60 +604,4 @@ void premiar_clientes()
     }
 
     fclose(file_clientes);
-}
-
-void remover_locacao(Locacao locacoes[], int *num_locacoes, int codigo_locacao)
-{
-    FILE *arquivo_entrada = fopen("locacoes.bin", "rb");
-    if (arquivo_entrada == NULL)
-    {
-        printf("Erro ao abrir o arquivo de locações para leitura.\n");
-        return;
-    }
-
-    FILE *arquivo_temporario = fopen("temp_locacoes.bin", "wb");
-    if (arquivo_temporario == NULL)
-    {
-        printf("Erro ao abrir o arquivo temporário para escrita.\n");
-        fclose(arquivo_entrada);
-        return;
-    }
-
-    Locacao locacao_atual;
-
-    while (fread(&locacao_atual, sizeof(Locacao), 1, arquivo_entrada) == 1)
-    {
-        if (locacao_atual.codigo != codigo_locacao)
-        {
-            fwrite(&locacao_atual, sizeof(Locacao), 1, arquivo_temporario);
-        }
-    }
-
-    fclose(arquivo_entrada);
-    fclose(arquivo_temporario);
-
-    remove("locacoes.bin");
-    rename("temp_locacoes.bin", "locacoes.bin");
-
-    carregar_locacoes(locacoes, num_locacoes);
-}
-
-void salvar_locacoes(Locacao locacoes[], int num_locacoes)
-{
-    FILE *arquivo = fopen("locacoes.bin", "wb");
-    if (arquivo != NULL)
-    {
-        fwrite(locacoes, sizeof(Locacao), num_locacoes, arquivo);
-        fclose(arquivo);
-    }
-}
-
-void carregar_locacoes(Locacao locacoes[], int *num_locacoes)
-{
-    FILE *arquivo = fopen("locacoes.bin", "rb");
-    if (arquivo != NULL)
-    {
-        fread(locacoes, sizeof(Locacao), MAX_LOCACOES, arquivo);
-        fclose(arquivo);
-    }
 }

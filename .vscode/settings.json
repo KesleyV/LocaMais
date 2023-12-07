@@ -2,6 +2,8 @@
     "files.associations": {
         "string.h": "c",
         "cliente.h": "c",
-        "veiculo.h": "c"
+        "veiculo.h": "c",
+        "menu.h": "c",
+        "unistd.h": "c"
     }
 }
