@@ -3,10 +3,12 @@
 #include <string.h>
 #include "cliente.h"
 #include "constants.h"
-
+#include "Menu.h"
 #include <stdio.h>
 #include <string.h>
 #include <unistd.h>
+#include <conio.h>
+#include "Decorador.h"
 
 // função auxiliar
 int cliente_existe(int codigo_cliente)
@@ -34,6 +36,9 @@ void cadastrar_cliente(int codigo, const char *nome, const char *endereco, const
     if (cliente_existe(codigo))
     {
         printf("Cliente ja cadastrado.\n");
+        printf("Pressione Enter para continuar...");
+        while (getch() != '\r')
+            ;
         return;
     }
 
@@ -73,6 +78,10 @@ void cadastrar_cliente(int codigo, const char *nome, const char *endereco, const
 
     fclose(arquivo);
     printf("Cliente cadastrado com sucesso.\n");
+
+    printf("Pressione Enter para continuar...");
+    while (getch() != '\r')
+        ;
 }
 
 void exibir_clientes()
@@ -88,14 +97,17 @@ void exibir_clientes()
 
     while (fread(&cliente, sizeof(Cliente), 1, arquivo) == 1)
     {
-        printf("Codigo: %d\n", cliente.codigo);
+        printf("\nCodigo: %d\n", cliente.codigo);
         printf("Nome: %s\n", cliente.nome);
         printf("Endereco: %s\n", cliente.endereco);
         printf("Telefone: %s\n", cliente.telefone);
         printf("Pontos de fidelidade: %d\n", cliente.pontos_fidelidade);
-        printf("--------------------------\n");
+        drawLine(1, 60, 1);
     }
 
+    printf("\nPressione Enter para continuar...\n");
+    while (getch() != '\r')
+        ;
     fclose(arquivo);
 }
 
@@ -113,19 +125,26 @@ void pesquisar_cliente(int codigo_cliente)
     {
         if (cliente.codigo == codigo_cliente)
         {
-            printf("Codigo: %d\n", cliente.codigo);
+            drawLine(1, 50, 1);
+            printf("\nCodigo: %d\n", cliente.codigo);
             printf("Nome: %s\n", cliente.nome);
             printf("Endereco: %s\n", cliente.endereco);
             printf("Telefone: %s\n", cliente.telefone);
             printf("Pontos de fidelidade: %d\n", cliente.pontos_fidelidade);
-            printf("--------------------------\n");
+            drawLine(1, 50, 1);
             fclose(arquivo);
+            printf("\nPressione Enter para continuar...\n");
+            while (getch() != '\r')
+                ;
             return;
         }
     }
 
     fclose(arquivo);
     printf("Cliente nao encontrado.\n");
+    printf("Pressione Enter para continuar...");
+    while (getch() != '\r')
+        ;
 }
 
 void remover_cliente(int codigo_cliente)
@@ -133,6 +152,9 @@ void remover_cliente(int codigo_cliente)
     if (!cliente_existe(codigo_cliente))
     {
         printf("Cliente com o codigo especificado nao existe.\n");
+        printf("Pressione Enter para continuar...");
+        while (getch() != '\r')
+            ;
         return;
     }
 
@@ -140,6 +162,9 @@ void remover_cliente(int codigo_cliente)
     if (arquivo_original == NULL)
     {
         printf("Erro ao abrir o arquivo de clientes para leitura.\n");
+        printf("Pressione Enter para continuar...");
+        while (getch() != '\r')
+            ;
         return;
     }
 
@@ -147,6 +172,9 @@ void remover_cliente(int codigo_cliente)
     if (arquivo_temporario == NULL)
     {
         printf("Erro ao criar o arquivo temporario para escrita.\n");
+        printf("Pressione Enter para continuar...");
+        while (getch() != '\r')
+            ;
         fclose(arquivo_original);
         return;
     }
@@ -174,14 +202,23 @@ void remover_cliente(int codigo_cliente)
         if (rename("clientes_temp.bin", "clientes.bin") != 0)
         {
             printf("Erro ao renomear o arquivo temporário.\n");
+            printf("Pressione Enter para continuar...");
+            while (getch() != '\r')
+                ;
         }
         else
         {
             printf("Cliente removido com sucesso.\n");
+            printf("Pressione Enter para continuar...");
+            while (getch() != '\r')
+                ;
         }
     }
     else
     {
         printf("Erro ao remover o arquivo original.\n");
+        printf("Pressione Enter para continuar...");
+        while (getch() != '\r')
+            ;
     }
 }

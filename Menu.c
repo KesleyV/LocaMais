@@ -6,6 +6,11 @@
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
+#include <windows.h>
+#include <conio.h>
+#include <locale.h>
+#include <stdbool.h>
+#include "Decorador.h"
 
 Cliente clientes[MAX_CLIENTES];
 Veiculo veiculos[MAX_VEICULOS];
@@ -78,31 +83,34 @@ void menu()
     int opcao = 0;
     while (opcao != 4)
     {
-        printf("\nMENU:\n");
-        printf("1. Menu Cliente\n");
-        printf("2. Menu Veiculo\n");
-        printf("3. Menu Locacao\n");
-        printf("4. Sair\n");
-        scanf("%d", &opcao);
+        limpar_console();
+        char opcoes_menu[5][40] = {
+            "MENU CLIENTE",
+            "MENU VEICULO",
+            "MENU LOCACAO",
+            "SAIR"};
+
+        opcao = estiliza_menu(2, 2, 4, opcoes_menu);
 
         switch (opcao)
         {
         case 1:
         {
-            printf("\nMENU CLIENTE:\n");
-            printf("1. Cadastrar Cliente\n");
-            printf("2. Exibir todos os clientes\n");
-            printf("3. Pesquisar Cliente\n");
-            printf("4. Remover cliente\n");
-            printf("5. Voltar\n");
+            limpar_console();
+            char opcoes_cliente[5][40] = {
+                "Cadastrar Cliente",
+                "Exibir todos os clientes",
+                "Pesquisar Cliente",
+                "Remover cliente",
+                "Voltar"};
 
-            int opcao_cliente;
-            scanf("%d", &opcao_cliente);
+            int opcao_cliente = estiliza_menu(2, 2, 5, opcoes_cliente);
 
             switch (opcao_cliente)
             {
             case 1:
             {
+                limpar_console();
                 int codigo;
                 char nome[50];
                 char endereco[150];
@@ -194,11 +202,13 @@ void menu()
             }
             case 2:
             {
+                limpar_console();
                 exibir_clientes();
                 break;
             }
             case 3:
             {
+                limpar_console();
                 int codigo_cliente;
                 do
                 {
@@ -222,6 +232,7 @@ void menu()
             }
             case 4:
             {
+                limpar_console();
                 int codigo_cliente;
                 do
                 {
@@ -244,6 +255,7 @@ void menu()
                 break;
             }
             case 5:
+                limpar_console();
                 break;
             default:
                 printf("Opcao invalida. Tente novamente.\n");
@@ -253,24 +265,26 @@ void menu()
         }
         case 2:
         {
-            printf("\nMENU VEICULO:\n");
-            printf("1. Cadastrar Veiculo\n");
-            printf("2. Exibir todos os veiculos\n");
-            printf("3. Pesquisar Veiculo\n");
-            printf("4. Remover veiculo\n");
-            printf("5. Exibir veiculos alugados\n");
-            printf("6. Exibir veiculos em manutencao\n");
-            printf("7. Retirar veiculo da manutencao\n");
-            printf("8. Enviar veiculo para manutencao\n");
-            printf("9. Voltar\n");
+            limpar_console();
+            char opcoes_veiculo[10][40] = {
+                "Cadastrar Veiculo",
+                "Exibir todos os veiculos",
+                "Pesquisar Veiculo",
+                "Remover veiculo",
+                "Exibir veiculos alugados",
+                "Exibir veiculos em manutencao",
+                "Retirar veiculo da manutencao",
+                "Enviar veiculo para manutencao",
+                "Exibir veiculos disponiveis",
+                "Voltar"};
 
-            int opcao_veiculo;
-            scanf("%d", &opcao_veiculo);
+            int opcao_veiculo = estiliza_menu(2, 2, 10, opcoes_veiculo);
 
             switch (opcao_veiculo)
             {
             case 1:
             {
+                limpar_console();
                 int codigo;
                 char descricao[100];
                 char modelo[50];
@@ -428,11 +442,13 @@ void menu()
             }
             case 2:
             {
+                limpar_console();
                 exibir_veiculos();
                 break;
             }
             case 3:
             {
+                limpar_console();
                 int codigo_veiculo;
                 do
                 {
@@ -456,6 +472,7 @@ void menu()
             }
             case 4:
             {
+                limpar_console();
                 int codigo_veiculo;
                 do
                 {
@@ -479,16 +496,19 @@ void menu()
             }
             case 5:
             {
+                limpar_console();
                 exibir_veiculos_alugados();
                 break;
             }
             case 6:
             {
+                limpar_console();
                 exibir_veiculos_em_manutencao();
                 break;
             }
             case 7:
             {
+                limpar_console();
                 int codigo_veiculo;
                 do
                 {
@@ -512,6 +532,7 @@ void menu()
             }
             case 8:
             {
+                limpar_console();
                 int codigo_veiculo;
                 do
                 {
@@ -534,6 +555,12 @@ void menu()
                 break;
             }
             case 9:
+            {
+                limpar_console();
+                exibir_veiculos_disponiveis();
+                break;
+            }
+            case 10:
                 break;
             default:
                 printf("Opcao invalida. Tente novamente.\n");
@@ -543,21 +570,24 @@ void menu()
         }
         case 3:
         {
-            printf("\nMENU LOCACAO:\n");
-            printf("1. Cadastrar Locacao\n");
-            printf("2. Exibir todas as locacoes\n");
-            printf("3. Mostrar Locacoes de Cliente\n");
-            printf("4. Dar Baixa em Locacao\n");
-            printf("5. Premiar clientes\n");
-            printf("6. Voltar\n");
+            limpar_console();
+            char opcoes_locacao[8][40] = {
+                "Cadastrar Locacao",
+                "Exibir todas as locacoes",
+                "Mostrar Locacoes de Cliente",
+                "Dar Baixa em Locacao",
+                "Premiar clientes",
+                "Exibir relatorio de faturamento",
+                "Exibir total faturado",
+                "Voltar"};
 
-            int opcao_locacao;
-            scanf("%d", &opcao_locacao);
+            int opcao_locacao = estiliza_menu(2, 2, 8, opcoes_locacao);
 
             switch (opcao_locacao)
             {
             case 1:
             {
+                limpar_console();
                 int codigo_locacao;
                 char data_retirada[11];
                 char data_devolucao[11];
@@ -671,16 +701,18 @@ void menu()
                 while (getchar() != '\n')
                     ;
 
-                cadastrar_locacao(clientes, num_clientes, veiculos, num_veiculos, locacoes, &num_locacoes, codigo_locacao, data_retirada, data_devolucao, seguro, codigo_cliente, numero_ocupantes);
+                cadastrar_locacao(codigo_locacao, data_retirada, data_devolucao, seguro, codigo_cliente, numero_ocupantes);
                 break;
             }
             case 2:
             {
+                limpar_console();
                 exibir_todas_locacoes();
                 break;
             }
             case 3:
             {
+                limpar_console();
                 int codigo_cliente;
                 do
                 {
@@ -704,21 +736,39 @@ void menu()
             }
             case 4:
             {
+                limpar_console();
                 dar_baixa_locacao(locacoes, &num_locacoes, veiculos, clientes, &num_veiculos, &num_clientes);
                 break;
             }
             case 5:
             {
+                limpar_console();
                 premiar_clientes();
                 break;
             }
+            case 6:
+            {
+                limpar_console();
+                exibirRelatorioFaturamento();
+                break;
+            }
+            case 7:
+            {
+                limpar_console();
+                exibirTotalGeral();
+                break;
+            }
+            case 8:
+                break;
             default:
+                limpar_console();
                 printf("Opcao invalida. Tente novamente.\n");
                 break;
             }
             break;
         }
         default:
+            limpar_console();
             printf("Opcao invalida. Tente novamente.\n");
             break;
         }

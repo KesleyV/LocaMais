@@ -4,6 +4,8 @@
         "cliente.h": "c",
         "veiculo.h": "c",
         "menu.h": "c",
-        "unistd.h": "c"
+        "unistd.h": "c",
+        "conio.h": "c",
+        "windows.h": "c"
     }
 }

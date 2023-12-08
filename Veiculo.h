@@ -22,5 +22,6 @@ void exibir_veiculos_alugados();
 void remover_veiculo_da_manutencao(int codigo_veiculo);
 void colocar_veiculo_em_manutencao(int codigo_veiculo);
 void exibir_veiculos_em_manutencao();
+void exibir_veiculos_disponiveis();
 
 #endif
