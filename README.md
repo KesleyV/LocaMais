@@ -11,4 +11,4 @@ gcc -o locacamais main.c client.c vehicle.c locacao.c menu.c decorador.c -o “L
 
 Then look for the executable called “Loca Mais” in the code folder and run it or run the following command ./Loca Mais
 
-Use the keyboard directional keys to navigate the menu
+Use the keyboard directional keys to navigate the menu and press the Enter key to access
