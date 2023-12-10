@@ -112,7 +112,6 @@ int atualizar_status_cliente(int codigo_cliente, const char *novo_status)
             else
             {
                 fclose(arquivo_cliente);
-                printf("Nao foi possivel atualizar o status do cliente acima pois o mesmo tem uma locacao ativa em seu nome.");
                 return 0;
             }
         }
@@ -365,7 +364,7 @@ void desativar_cliente(int codigo_cliente)
     }
     else
     {
-        printf("Nao foi possivel atualizar o status do cliente acima pois o mesmo tem uma locacao ativa em seu nome.");
+        printf("\nNao foi possivel atualizar o status do cliente acima pois o mesmo tem uma locacao ativa em seu nome.\n");
         printf("\nPressione Enter para continuar...\n");
         while (getch() != '\r')
             ;

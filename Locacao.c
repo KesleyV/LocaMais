@@ -271,10 +271,6 @@ void calcular_pontos_fidelidade(int codigo_cliente, int diarias)
             fclose(arquivo_clientes);
             return;
         }
-        else
-        {
-            printf("Cliente com codigo %d nao encontrado.\n", codigo_cliente);
-        }
     }
 
     fclose(arquivo_clientes);
@@ -306,10 +302,6 @@ int debitar_pontos_fidelidade(int codigo_cliente)
             fclose(arquivo_clientes);
             return cliente.pontos_fidelidade;
         }
-        else
-        {
-            printf("Cliente com codigo %d nao encontrado.\n", codigo_cliente);
-        }
     }
 
     fclose(arquivo_clientes);
@@ -340,10 +332,6 @@ void habilitaDesconto(int codigo_cliente)
 
             fclose(arquivo_clientes);
         }
-        else
-        {
-            printf("Cliente com codigo %d nao encontrado.\n", codigo_cliente);
-        }
     }
 
     fclose(arquivo_clientes);
@@ -372,10 +360,6 @@ void desabilitaDesconto(int codigo_cliente)
             fwrite(&cliente, sizeof(Cliente), 1, arquivo_clientes);
 
             fclose(arquivo_clientes);
-        }
-        else
-        {
-            printf("Cliente com codigo %d nao encontrado.\n", codigo_cliente);
         }
     }
 
