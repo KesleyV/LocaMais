@@ -12,6 +12,29 @@
 #include <io.h>
 
 // funções auxiliares
+int dias_no_mes(int mes, int ano)
+{
+    switch (mes)
+    {
+    case 4:
+    case 6:
+    case 9:
+    case 11:
+        return 30;
+    case 2:
+        if ((ano % 4 == 0 && ano % 100 != 0) || (ano % 400 == 0))
+        {
+            return 29;
+        }
+        else
+        {
+            return 28;
+        }
+    default:
+        return 31;
+    }
+}
+
 int diferenca_dias(const char *data_retirada, const char *data_devolucao)
 {
     struct tm tm_retirada = {0};
@@ -23,11 +46,29 @@ int diferenca_dias(const char *data_retirada, const char *data_devolucao)
     tm_retirada.tm_year -= 1900;
     tm_devolucao.tm_year -= 1900;
 
+    tm_retirada.tm_mon -= 1;
+    tm_devolucao.tm_mon -= 1;
+
     time_t t_retirada = mktime(&tm_retirada);
     time_t t_devolucao = mktime(&tm_devolucao);
 
     double diferenca_segundos = difftime(t_devolucao, t_retirada);
-    return diferenca_segundos / (60 * 60 * 24);
+    int diferenca_dias = diferenca_segundos / (60 * 60 * 24);
+
+    while (diferenca_dias > dias_no_mes(tm_retirada.tm_mon + 1, tm_retirada.tm_year + 1900))
+    {
+        tm_retirada.tm_mday = 1;
+        tm_retirada.tm_mon++;
+        if (tm_retirada.tm_mon > 11)
+        {
+            tm_retirada.tm_mon = 0;
+            tm_retirada.tm_year++;
+        }
+        t_retirada = mktime(&tm_retirada);
+        diferenca_dias = difftime(t_devolucao, t_retirada) / (60 * 60 * 24);
+    }
+
+    return diferenca_dias;
 }
 
 int locacao_existe(int codigo_locacao)
@@ -48,85 +89,6 @@ int locacao_existe(int codigo_locacao)
 
     fclose(arquivo_locacoes);
     return locacao_existe;
-}
-
-char *exibir_cliente_por_codigo(int codigo_cliente)
-{
-    static char informacoesCliente[500]; // Tamanho ajustado conforme necessário
-    FILE *arquivo_clientes = fopen("clientes.bin", "rb");
-
-    if (arquivo_clientes == NULL)
-    {
-        printf("Erro ao abrir o arquivo de clientes para leitura.\n");
-        strcpy(informacoesCliente, "Erro ao abrir o arquivo de clientes.");
-        fclose(arquivo_clientes);
-        return informacoesCliente;
-    }
-
-    Cliente cliente_atual;
-    int cliente_encontrado = 0;
-
-    while (fread(&cliente_atual, sizeof(Cliente), 1, arquivo_clientes) == 1)
-    {
-        if (cliente_atual.codigo == codigo_cliente)
-        {
-            snprintf(informacoesCliente, sizeof(informacoesCliente),
-                     "Codigo: %d\nNome: %s\nEndereco: %s\nTelefone: %s",
-                     cliente_atual.codigo, cliente_atual.nome, cliente_atual.endereco, cliente_atual.telefone);
-
-            cliente_encontrado = 1;
-            break;
-        }
-    }
-
-    fclose(arquivo_clientes);
-
-    if (!cliente_encontrado)
-    {
-        snprintf(informacoesCliente, sizeof(informacoesCliente), "Cliente nao encontrado.");
-    }
-
-    return informacoesCliente;
-}
-
-char *exibir_veiculo_por_codigo(int codigo_veiculo)
-{
-    static char informacoesVeiculo[500]; // Tamanho ajustado conforme necessário
-    FILE *arquivo_veiculos = fopen("veiculos.bin", "rb");
-
-    if (arquivo_veiculos == NULL)
-    {
-        printf("Erro ao abrir o arquivo de veículos para leitura.\n");
-        strcpy(informacoesVeiculo, "Erro ao abrir o arquivo de veículos.");
-        return informacoesVeiculo;
-    }
-
-    Veiculo veiculo_atual;
-    int veiculo_encontrado = 0;
-
-    while (fread(&veiculo_atual, sizeof(Veiculo), 1, arquivo_veiculos) == 1)
-    {
-        if (veiculo_atual.codigo == codigo_veiculo)
-        {
-            snprintf(informacoesVeiculo, sizeof(informacoesVeiculo),
-                     "Codigo: %d\nDescricao: %s\nModelo: %s\nCor: %s\nPlaca: %s\nValor Diaria: %.2f\nOcupantes: %d\nStatus: %s",
-                     veiculo_atual.codigo, veiculo_atual.descricao, veiculo_atual.modelo,
-                     veiculo_atual.cor, veiculo_atual.placa, veiculo_atual.valor_diaria,
-                     veiculo_atual.ocupantes, veiculo_atual.status);
-
-            veiculo_encontrado = 1;
-            break;
-        }
-    }
-
-    fclose(arquivo_veiculos);
-
-    if (!veiculo_encontrado)
-    {
-        snprintf(informacoesVeiculo, sizeof(informacoesVeiculo), "Veiculo nao encontrado.");
-    }
-
-    return informacoesVeiculo;
 }
 
 int buscar_veiculo_disponivel(const char *status, int num_ocupantes)
@@ -195,6 +157,50 @@ float diariaVeiculo(int codigo_veiculo)
     return valor_diaria;
 }
 
+int temDesconto(int codigo_cliente)
+{
+    FILE *arquivo_cliente = fopen("clientes.bin", "rb");
+    if (arquivo_cliente == NULL)
+    {
+        printf("Erro ao abrir o arquivo de veículos para leitura.\n");
+        return -1;
+    }
+
+    Cliente cliente;
+    int cliente_encontrado = 0;
+    int desconto = 0;
+
+    while (fread(&cliente, sizeof(Cliente), 1, arquivo_cliente) == 1)
+    {
+        if (cliente.codigo == codigo_cliente)
+        {
+            cliente_encontrado = 1;
+            if (cliente.desconto == 1)
+            {
+                desconto = 1;
+                fclose(arquivo_cliente);
+                return desconto;
+            }
+            else
+            {
+                desconto = 0;
+                fclose(arquivo_cliente);
+                return desconto;
+            }
+        }
+    }
+
+    fclose(arquivo_cliente);
+
+    if (!cliente_encontrado)
+    {
+        printf("Cliente nao encontrado.\n");
+        return -1;
+    }
+
+    return desconto;
+}
+
 void atualizar_status_veiculo(int codigo_veiculo, const char *novo_status)
 {
     FILE *arquivo_veiculos = fopen("veiculos.bin", "rb+");
@@ -245,6 +251,7 @@ void calcular_pontos_fidelidade(int codigo_cliente, int diarias)
     if (arquivo_clientes == NULL)
     {
         printf("Erro ao abrir arquivo de clientes.\n");
+        fclose(arquivo_clientes);
         return;
     }
 
@@ -264,20 +271,23 @@ void calcular_pontos_fidelidade(int codigo_cliente, int diarias)
             fclose(arquivo_clientes);
             return;
         }
+        else
+        {
+            printf("Cliente com codigo %d nao encontrado.\n", codigo_cliente);
+        }
     }
 
     fclose(arquivo_clientes);
-    printf("Cliente com codigo %d nao encontrado.\n", codigo_cliente);
 }
 
-void debitar_pontos_fidelidade(int codigo_cliente)
+int debitar_pontos_fidelidade(int codigo_cliente)
 {
     FILE *arquivo_clientes = fopen("clientes.bin", "rb+");
 
     if (arquivo_clientes == NULL)
     {
         printf("Erro ao abrir arquivo de clientes.\n");
-        return;
+        return 0;
     }
 
     fseek(arquivo_clientes, 0, SEEK_SET);
@@ -294,12 +304,82 @@ void debitar_pontos_fidelidade(int codigo_cliente)
             fwrite(&cliente, sizeof(Cliente), 1, arquivo_clientes);
 
             fclose(arquivo_clientes);
-            return;
+            return cliente.pontos_fidelidade;
+        }
+        else
+        {
+            printf("Cliente com codigo %d nao encontrado.\n", codigo_cliente);
         }
     }
 
     fclose(arquivo_clientes);
-    printf("Cliente com codigo %d nao encontrado.\n", codigo_cliente);
+    return 0;
+}
+
+void habilitaDesconto(int codigo_cliente)
+{
+    FILE *arquivo_clientes = fopen("clientes.bin", "rb+");
+
+    if (arquivo_clientes == NULL)
+    {
+        printf("Erro ao abrir arquivo de clientes.\n");
+    }
+
+    fseek(arquivo_clientes, 0, SEEK_SET);
+
+    Cliente cliente;
+
+    while (fread(&cliente, sizeof(Cliente), 1, arquivo_clientes) == 1)
+    {
+        if (cliente.codigo == codigo_cliente)
+        {
+            cliente.desconto = 1;
+
+            fseek(arquivo_clientes, -sizeof(Cliente), SEEK_CUR);
+            fwrite(&cliente, sizeof(Cliente), 1, arquivo_clientes);
+
+            fclose(arquivo_clientes);
+        }
+        else
+        {
+            printf("Cliente com codigo %d nao encontrado.\n", codigo_cliente);
+        }
+    }
+
+    fclose(arquivo_clientes);
+}
+
+void desabilitaDesconto(int codigo_cliente)
+{
+    FILE *arquivo_clientes = fopen("clientes.bin", "rb+");
+
+    if (arquivo_clientes == NULL)
+    {
+        printf("Erro ao abrir arquivo de clientes.\n");
+    }
+
+    fseek(arquivo_clientes, 0, SEEK_SET);
+
+    Cliente cliente;
+
+    while (fread(&cliente, sizeof(Cliente), 1, arquivo_clientes) == 1)
+    {
+        if (cliente.codigo == codigo_cliente)
+        {
+            cliente.desconto = 0;
+
+            fseek(arquivo_clientes, -sizeof(Cliente), SEEK_CUR);
+            fwrite(&cliente, sizeof(Cliente), 1, arquivo_clientes);
+
+            fclose(arquivo_clientes);
+        }
+        else
+        {
+            printf("Cliente com codigo %d nao encontrado.\n", codigo_cliente);
+        }
+    }
+
+    fclose(arquivo_clientes);
 }
 
 int validar_data_entrega(const char *data_retirada, const char *data_devolucao)
@@ -394,9 +474,13 @@ void remover_locacao(int codigo_locacao)
     }
 }
 
-void imprimirRelatorioLocacao(Locacao locacao, char data_entrega[], int dias_atraso, int valor_multa_por_dias, float valor_multa_porcentagem, float subtotal)
+void imprimirRelatorioLocacao(Locacao locacao, char data_entrega[], int dias_atraso, float valor_multa_por_dias, float valor_multa_porcentagem, float subtotal, float diaria, int desconto, float valor_aluguel)
 {
-    int seguro = 0;
+    int lin1 = 1, col1 = 1, lin2 = 44, col2 = 60;
+    setlocale(LC_ALL, "C");
+    float seguro = 0;
+    float desconto_cliente;
+
     if (locacao.seguro == 1)
     {
         seguro = 50;
@@ -405,35 +489,95 @@ void imprimirRelatorioLocacao(Locacao locacao, char data_entrega[], int dias_atr
     {
         seguro = 0;
     }
-    drawLine(1, 50, 1);
-    printf("\nData de devolucao acordada: %s\n", locacao.data_devolucao);
+
+    if (desconto == 1)
+    {
+        desconto_cliente = subtotal * 0.10;
+    }
+    else
+    {
+        desconto_cliente = 0;
+    }
+
+    box(lin1, col1, lin2, col2);
+    linhaCol(lin1 + 2, col1 + 25);
+    printf("LOCA MAIS");
+    linhaCol(lin1 + 4, col1 + 20);
+    printf("RECIBO DE FATURAMENTO");
+    linhaCol(lin1 + 6, col1 + 2);
+    drawLine(1, 55, 1);
+    linhaCol(lin1 + 8, col1 + 2);
+    printf("Codigo do faturamento: %d", locacao.codigo);
+    linhaCol(lin1 + 10, col1 + 2);
+    printf("Codigo do cliente: %d", locacao.codigo_cliente);
+    linhaCol(lin1 + 12, col1 + 2);
+    printf("Data de retirada do veiculo: %s", locacao.data_retirada);
+    linhaCol(lin1 + 14, col1 + 2);
+    printf("Data de devolucao acordada: %s", locacao.data_devolucao);
+    linhaCol(lin1 + 16, col1 + 2);
     printf("Data de Entrega: %s\n", data_entrega);
-    printf("Valor do seguro: %d\n", seguro);
+    linhaCol(lin1 + 18, col1 + 2);
+    printf("Valor do seguro: %.2f\n", seguro);
+    linhaCol(lin1 + 20, col1 + 2);
+    printf("Valor da diaria do carro: %.2f", diaria);
+    linhaCol(lin1 + 22, col1 + 2);
     printf("Dias de Atraso: %d\n", dias_atraso);
-    printf("Valor da multa por dias de atraso: %d\n", valor_multa_por_dias);
-    printf("Taxa de 5%% pelo atraso: %.2f\n", valor_multa_porcentagem);
+    linhaCol(lin1 + 24, col1 + 2);
+    printf("Valor do aluguel: %.2f\n", valor_aluguel);
+    linhaCol(lin1 + 26, col1 + 2);
+    printf("Situacao da locacao: %s", locacao.status);
+    linhaCol(lin1 + 28, col1 + 2);
+    printf("Desconto: %.2f\n", desconto_cliente);
+    linhaCol(lin1 + 30, col1 + 2);
+    drawLine(1, 55, 1);
+    linhaCol(lin1 + 32, col1 + 2);
     printf("Subtotal: %.2f\n", subtotal);
-    printf("Valor Total: %.2f\n", locacao.valor_aluguel);
-    drawLine(1, 50, 1);
+    linhaCol(lin1 + 34, col1 + 2);
+    drawLine(1, 55, 1);
+    linhaCol(lin1 + 36, col1 + 2);
+    printf("Valor da multa por dias de atraso: %.2f\n", valor_multa_por_dias);
+    linhaCol(lin1 + 38, col1 + 2);
+    printf("Taxa de 5%% pelo atraso: %.2f\n", valor_multa_porcentagem);
+    linhaCol(lin1 + 40, col1 + 2);
+    drawLine(1, 55, 1);
+    linhaCol(lin1 + 42, col1 + 2);
+    printf("Total: %.2f\n", locacao.valor_aluguel);
+    linhaCol(lin1 + 44, col1 + 2);
+
+    setlocale(LC_ALL, "");
+
+    Faturamento faturamento;
+    faturamento.codigo = locacao.codigo;
+    faturamento.codigo_cliente = locacao.codigo_cliente;
+    strcpy(faturamento.data_retirada, locacao.data_retirada);
+    strcpy(faturamento.data_devolucao, locacao.data_devolucao);
+    strcpy(faturamento.data_entrega, data_entrega);
+    faturamento.seguro = seguro;
+    faturamento.diaria = diaria;
+    faturamento.dias_atraso = dias_atraso;
+    faturamento.alguel_acordado = valor_aluguel;
+    strcpy(faturamento.status_locacao, "Finalizada");
+    faturamento.desconto = desconto_cliente;
+    faturamento.subtotal = subtotal;
+    faturamento.valor_multa_por_dias = valor_multa_por_dias;
+    faturamento.valor_multa_porcentagem = valor_multa_porcentagem;
+    faturamento.valor_aluguel = locacao.valor_aluguel;
+
+    salvarFaturamento(&faturamento);
 }
 
-void salvarFaturamento(Locacao locacao, char *data_entrega, int dias_atraso, int valor_multa_por_dias, float valor_multa_porcentagem, float subtotal, float total)
+void salvarFaturamento(const Faturamento *faturamento)
 {
     FILE *arquivo_faturamento = fopen("faturamento.bin", "ab");
 
     if (arquivo_faturamento == NULL)
     {
         printf("Erro ao abrir o arquivo de faturamento para escrita.\n");
+        fclose(arquivo_faturamento);
         return;
     }
 
-    fwrite(&locacao, sizeof(Locacao), 1, arquivo_faturamento);
-    fwrite(data_entrega, sizeof(char), strlen(data_entrega) + 1, arquivo_faturamento);
-    fwrite(&dias_atraso, sizeof(int), 1, arquivo_faturamento);
-    fwrite(&valor_multa_por_dias, sizeof(int), 1, arquivo_faturamento);
-    fwrite(&valor_multa_porcentagem, sizeof(float), 1, arquivo_faturamento);
-    fwrite(&subtotal, sizeof(float), 1, arquivo_faturamento);
-    fwrite(&total, sizeof(float), 1, arquivo_faturamento);
+    fwrite(faturamento, sizeof(Faturamento), 1, arquivo_faturamento);
 
     fclose(arquivo_faturamento);
 
@@ -450,7 +594,7 @@ void salvarFaturamento(Locacao locacao, char *data_entrega, int dias_atraso, int
         fread(&totais, sizeof(Total), 1, arquivo_totais);
     }
 
-    totais.total += locacao.valor_aluguel;
+    totais.total += faturamento->valor_aluguel;
 
     fseek(arquivo_totais, 0, SEEK_SET);
     fwrite(&totais, sizeof(Total), 1, arquivo_totais);
@@ -458,9 +602,88 @@ void salvarFaturamento(Locacao locacao, char *data_entrega, int dias_atraso, int
     fclose(arquivo_totais);
 }
 
-// funções principais
-void cadastrar_locacao(int codigo_locacao, const char *data_retirada, const char *data_devolucao, int seguro, int codigo_cliente, int num_ocupantes)
+int obter_proximo_codigo_locacao()
 {
+    FILE *arquivo_codigo = fopen("codigo_locacao.bin", "rb+");
+
+    if (arquivo_codigo == NULL)
+    {
+        arquivo_codigo = fopen("codigo_locacao.bin", "wb+");
+        CodigoLocacao valor_inicial = {1};
+        fwrite(&valor_inicial, sizeof(CodigoLocacao), 1, arquivo_codigo);
+        fclose(arquivo_codigo);
+        return valor_inicial.codigo;
+    }
+
+    CodigoLocacao codigo_locacao;
+    fread(&codigo_locacao, sizeof(CodigoLocacao), 1, arquivo_codigo);
+
+    codigo_locacao.codigo++;
+
+    rewind(arquivo_codigo);
+    fwrite(&codigo_locacao, sizeof(CodigoLocacao), 1, arquivo_codigo);
+
+    fclose(arquivo_codigo);
+
+    return codigo_locacao.codigo;
+}
+
+void premiar_clientes(int codigo_cliente)
+{
+    FILE *file_clientes = fopen("clientes.bin", "rb");
+
+    if (file_clientes == NULL)
+    {
+        printf("Erro ao abrir arquivo de clientes.\n");
+        printf("\nPressione Enter para continuar...\n");
+        while (getch() != '\r')
+            ;
+        fclose(file_clientes);
+        return;
+    }
+
+    Cliente cliente;
+    int lin1 = 12, col1 = 1, lin2 = 34, col2 = 60;
+
+    while (fread(&cliente, sizeof(Cliente), 1, file_clientes) == 1)
+    {
+        if (cliente.codigo == codigo_cliente)
+        {
+            setlocale(LC_ALL, "C");
+            box(lin1, col1, lin2, col2);
+            linhaCol(lin1 + 2, col1 + 25);
+            printf("LOCA MAIS");
+            linhaCol(lin1 + 4, col1 + 20);
+            printf("CLIENTE PREMIADO");
+            linhaCol(lin1 + 6, col1 + 2);
+            drawLine(1, 55, 1);
+            linhaCol(lin1 + 8, col1 + 2);
+            printf("Codigo: %d", cliente.codigo);
+            linhaCol(lin1 + 10, col1 + 2);
+            printf("Nome: %s", cliente.nome);
+            linhaCol(lin1 + 12, col1 + 2);
+            printf("Endereco: %s", cliente.endereco);
+            linhaCol(lin1 + 14, col1 + 2);
+            printf("Telefone: %s", cliente.telefone);
+            linhaCol(lin1 + 16, col1 + 2);
+            printf("Pontos de fidelidade conquistados: %d", cliente.pontos_fidelidade);
+            int pontos_restantes = debitar_pontos_fidelidade(cliente.codigo);
+            linhaCol(lin1 + 18, col1 + 2);
+            printf("Pontos de fidelidade restantes: %d", pontos_restantes);
+            linhaCol(lin1 + 20, col1 + 2);
+            printf("O cliente ganhou 10%% de desconto no valor da locacao.");
+            linhaCol(lin1 + 34, col1 + 2);
+            setlocale(LC_ALL, "");
+            habilitaDesconto(cliente.codigo);
+        }
+    }
+    fclose(file_clientes);
+}
+
+// funções principais
+void cadastrar_locacao(const char *data_retirada, const char *data_devolucao, int seguro, int codigo_cliente, int num_ocupantes)
+{
+    int codigo_locacao = obter_proximo_codigo_locacao();
     if (locacao_existe(codigo_locacao))
     {
         printf("Codigo de locacao ja existe.\n");
@@ -477,22 +700,24 @@ void cadastrar_locacao(int codigo_locacao, const char *data_retirada, const char
         printf("\nPressione Enter para continuar...\n");
         while (getch() != '\r')
             ;
+        fclose(arquivo_clientes);
         return;
     }
 
     Cliente cliente_encontrado;
+
     int cliente_existe = 0;
+    char cliente_status[11];
 
     while (fread(&cliente_encontrado, sizeof(Cliente), 1, arquivo_clientes) == 1)
     {
         if (cliente_encontrado.codigo == codigo_cliente)
         {
             cliente_existe = 1;
+            strcpy(cliente_status, cliente_encontrado.status);
             break;
         }
     }
-
-    fclose(arquivo_clientes);
 
     if (!cliente_existe)
     {
@@ -504,11 +729,22 @@ void cadastrar_locacao(int codigo_locacao, const char *data_retirada, const char
         return;
     }
 
+    if (strcmp(cliente_status, "Desativado") == 0)
+    {
+        printf("\nNao e possivel cadastrar uma locacao para uma cliente que esta desativado.\n");
+        printf("\nPressione Enter para continuar...\n");
+        while (getch() != '\r')
+            ;
+        fclose(arquivo_clientes);
+        return;
+    }
+
+    fclose(arquivo_clientes);
+
     int veiculo_disponivel = buscar_veiculo_disponivel("Disponivel", num_ocupantes);
 
     if (veiculo_disponivel == -1)
     {
-        printf("\nNao temos veiculos disponiveis...\n");
         printf("\nPressione Enter para continuar...\n");
         while (getch() != '\r')
             ;
@@ -529,10 +765,18 @@ void cadastrar_locacao(int codigo_locacao, const char *data_retirada, const char
     nova_locacao.codigo_veiculo = veiculo_disponivel;
     nova_locacao.quantidade_dias = diferenca_dias(data_retirada, data_devolucao);
     nova_locacao.valor_aluguel = calcular_valor_aluguel(nova_locacao.quantidade_dias, diaria, nova_locacao.seguro);
+    strcpy(nova_locacao.status, "Ativa");
 
-    printf("Locacao realizada com sucesso\n");
+    printf("\nLocacao de numero %d realizada com sucesso\n", nova_locacao.codigo);
 
     calcular_pontos_fidelidade(codigo_cliente, nova_locacao.quantidade_dias);
+    int pontos_adicionados = nova_locacao.quantidade_dias * 10;
+
+    printf("\nForam adicionados %d pontos de fidelidade ao cliente %s de codigo %d.\n", pontos_adicionados, cliente_encontrado.nome, cliente_encontrado.codigo);
+    if (cliente_encontrado.pontos_fidelidade >= 500)
+    {
+        premiar_clientes(cliente_encontrado.codigo);
+    }
 
     fwrite(&nova_locacao, sizeof(Locacao), 1, arquivo_locacoes);
 
@@ -548,7 +792,6 @@ void cadastrar_locacao(int codigo_locacao, const char *data_retirada, const char
         fclose(arquivo_clientes);
         fclose(arquivo_veiculos);
         fclose(arquivo_clientes);
-
         return;
     }
 
@@ -563,14 +806,10 @@ void cadastrar_locacao(int codigo_locacao, const char *data_retirada, const char
         ;
 }
 
-void dar_baixa_locacao(Locacao locacoes[], int *num_locacoes, Veiculo veiculos[], Cliente clientes[], int *num_veiculos, int *num_clientes)
+void dar_baixa_locacao(int codigo_locacao)
 {
-    int codigo_locacao;
-    float valor_diaria, valor_multa_porcentagem;
-    int codigo_veiculo, valor_multa_por_dias = 0;
-
-    printf("Digite o codigo da locacao a dar baixa: ");
-    scanf("%d", &codigo_locacao);
+    float valor_diaria, valor_multa_porcentagem, valor_multa_por_dias = 0, valor_aluguel;
+    int codigo_veiculo;
 
     FILE *arquivo_locacoes = fopen("locacoes.bin", "rb+");
     if (arquivo_locacoes == NULL)
@@ -602,6 +841,7 @@ void dar_baixa_locacao(Locacao locacoes[], int *num_locacoes, Veiculo veiculos[]
         printf("Pressione Enter para continuar...");
         while (getch() != '\r')
             ;
+        fclose(arquivo_locacoes);
         return;
     }
 
@@ -613,6 +853,7 @@ void dar_baixa_locacao(Locacao locacoes[], int *num_locacoes, Veiculo veiculos[]
         while (getch() != '\r')
             ;
         fclose(arquivo_locacoes);
+        fclose(arquivo_veiculos);
         return;
     }
 
@@ -625,6 +866,7 @@ void dar_baixa_locacao(Locacao locacoes[], int *num_locacoes, Veiculo veiculos[]
         while (getch() != '\r')
             ;
         fclose(arquivo_locacoes);
+        fclose(arquivo_veiculos);
         return;
     }
 
@@ -638,10 +880,12 @@ void dar_baixa_locacao(Locacao locacoes[], int *num_locacoes, Veiculo veiculos[]
         while (getch() != '\r')
             ;
         fclose(arquivo_locacoes);
+        fclose(arquivo_veiculos);
         return;
     }
 
-    locacao_modificada.valor_aluguel = calcular_valor_aluguel(locacao_modificada.quantidade_dias, valor_diaria, locacao_modificada.seguro);
+    valor_aluguel = calcular_valor_aluguel(locacao_modificada.quantidade_dias, valor_diaria, locacao_modificada.seguro);
+    locacao_modificada.valor_aluguel = valor_aluguel;
 
     char data_entrega[11];
     do
@@ -649,7 +893,7 @@ void dar_baixa_locacao(Locacao locacoes[], int *num_locacoes, Veiculo veiculos[]
         printf("Digite a data de entrega (formato: dd/mm/yyyy): ");
         if (scanf("%s", data_entrega) != 1 || !validarFormatoData(data_entrega) || !validar_data_entrega(locacao_modificada.data_devolucao, data_entrega))
         {
-            printf("Entrada invalida. Formato da data incorreto ou intervalo inválido.\n");
+            printf("Entrada invalida. Formato da data incorreto ou intervalo invalido.\n");
             while (getchar() != '\n')
                 ;
         }
@@ -659,6 +903,13 @@ void dar_baixa_locacao(Locacao locacoes[], int *num_locacoes, Veiculo veiculos[]
         }
     } while (1);
     float subtotal = locacao_modificada.valor_aluguel;
+    int desconto = temDesconto(locacao_modificada.codigo_cliente);
+
+    if (desconto == 1)
+    {
+        subtotal -= subtotal * 0.10;
+    }
+
     int dif_dias = diferenca_dias(locacao_modificada.data_devolucao, data_entrega);
     if (dif_dias > 0)
     {
@@ -666,6 +917,13 @@ void dar_baixa_locacao(Locacao locacoes[], int *num_locacoes, Veiculo veiculos[]
         valor_multa_porcentagem = (locacao_modificada.valor_aluguel + valor_multa_por_dias) * 0.05;
         locacao_modificada.valor_aluguel += valor_multa_por_dias + valor_multa_porcentagem;
     }
+    else
+    {
+        valor_multa_por_dias = 0.0;
+        valor_multa_porcentagem = 0.0;
+    }
+
+    strcpy(locacao_modificada.status, "Finalizada");
 
     fwrite(&locacao_modificada, sizeof(Locacao), 1, arquivo_locacoes);
 
@@ -674,18 +932,20 @@ void dar_baixa_locacao(Locacao locacoes[], int *num_locacoes, Veiculo veiculos[]
 
     atualizar_status_veiculo(locacao_modificada.codigo_veiculo, "Disponivel");
 
-    imprimirRelatorioLocacao(locacao_modificada, data_entrega, dif_dias, valor_multa_por_dias, valor_multa_porcentagem, subtotal);
+    imprimirRelatorioLocacao(locacao_modificada, data_entrega, dif_dias, valor_multa_por_dias, valor_multa_porcentagem, subtotal, valor_diaria, desconto, valor_aluguel);
 
-    salvarFaturamento(locacao_modificada, data_entrega, dif_dias, valor_multa_por_dias, valor_multa_porcentagem, subtotal, locacao_modificada.valor_aluguel);
+    desabilitaDesconto(locacao_modificada.codigo_cliente);
 
     remover_locacao(codigo_locacao);
 
+    printf("\n");
+    printf("\n");
     printf("\nPressione Enter para continuar...\n");
     while (getch() != '\r')
         ;
 }
 
-void exibir_todas_locacoes()
+void exibir_todas_locacoes_ativas()
 {
     int aux = 0;
 
@@ -698,39 +958,133 @@ void exibir_todas_locacoes()
     }
 
     Locacao locacao_atual;
+    FILE *arquivo_clientes = fopen("clientes.bin", "rb");
 
+    if (arquivo_clientes == NULL)
+    {
+        printf("Erro ao abrir o arquivo de clientes para leitura.\n");
+        fclose(arquivo_clientes);
+    }
+
+    Cliente cliente_atual;
+
+    FILE *arquivo_veiculos = fopen("veiculos.bin", "rb");
+
+    if (arquivo_veiculos == NULL)
+    {
+        printf("Erro ao abrir o arquivo de veículos para leitura.\n");
+        printf("Pressione Enter para continuar...");
+        while (getch() != '\r')
+            ;
+        return;
+    }
+
+    Veiculo veiculo_atual;
+
+    int lin1 = 1, col1 = 1, lin2 = 56, col2 = 60;
     while (fread(&locacao_atual, sizeof(Locacao), 1, arquivo_locacoes) == 1)
     {
-        printf("\nCodigo da Locacao: %d\n", locacao_atual.codigo);
-        printf("Data de Retirada: %s\n", locacao_atual.data_retirada);
-        printf("Data de Devolucao: %s\n", locacao_atual.data_devolucao);
+        setlocale(LC_ALL, "C");
+        if (strcmp(locacao_atual.status, "Ativa") == 0)
+        {
+            box(lin1, col1, lin2, col2);
+            linhaCol(lin1 + 2, col1 + 25);
+            printf("LOCA MAIS");
+            linhaCol(lin1 + 4, col1 + 20);
+            printf("LOCACAO DO CLIENTE");
+            linhaCol(lin1 + 6, col1 + 2);
+            drawLine(1, 56, 1);
+            linhaCol(lin1 + 8, col1 + 2);
+            printf("Codigo da Locacao: %d\n", locacao_atual.codigo);
+            linhaCol(lin1 + 10, col1 + 2);
+            printf("Data de Retirada: %s\n", locacao_atual.data_retirada);
+            linhaCol(lin1 + 12, col1 + 2);
+            printf("Data de Devolucao: %s\n", locacao_atual.data_devolucao);
+            linhaCol(lin1 + 14, col1 + 2);
+            printf("Seguro: %s\n", (locacao_atual.seguro == 1) ? "Sim" : "Nao");
+            linhaCol(lin1 + 16, col1 + 2);
+            printf("Quantidade de Dias alugado: %d\n", locacao_atual.quantidade_dias);
+            linhaCol(lin1 + 18, col1 + 2);
+            printf("Valor do Aluguel: %.2f\n", locacao_atual.valor_aluguel);
+            linhaCol(lin1 + 20, col1 + 2);
+            printf("Situacao da locacao: %s\n", locacao_atual.status);
+            linhaCol(lin1 + 22, col1 + 2);
+            drawLine(1, 56, 1);
+            linhaCol(lin1 + 24, col1 + 2);
+            printf("Dados do cliente: ");
+            linhaCol(lin1 + 26, col1 + 2);
+            fseek(arquivo_clientes, 0, SEEK_SET);
+            while (fread(&cliente_atual, sizeof(Cliente), 1, arquivo_clientes) == 1)
+            {
+                if (cliente_atual.codigo == locacao_atual.codigo_cliente)
+                {
+                    printf("Codigo: %d\n", cliente_atual.codigo);
+                    linhaCol(lin1 + 28, col1 + 2);
+                    printf("Endereco: %s\n", cliente_atual.endereco);
+                    linhaCol(lin1 + 30, col1 + 2);
+                    printf("Telefone: %s\n", cliente_atual.telefone);
+                    linhaCol(lin1 + 32, col1 + 2);
+                    printf("Pontos de fidelidade: %d\n", cliente_atual.pontos_fidelidade);
+                    linhaCol(lin1 + 34, col1 + 2);
+                    printf("Desconto: %s\n", (cliente_atual.desconto == 1) ? "Sim (10%%)" : "Nao");
+                    linhaCol(lin1 + 36, col1 + 2);
+                }
+            }
+            drawLine(1, 56, 1);
+            linhaCol(lin1 + 38, col1 + 2);
+            printf("Dados do veiculo: ");
+            fseek(arquivo_veiculos, 0, SEEK_SET);
+            linhaCol(lin1 + 40, col1 + 2);
+            while (fread(&veiculo_atual, sizeof(Veiculo), 1, arquivo_veiculos) == 1)
+            {
+                if (veiculo_atual.codigo == locacao_atual.codigo_veiculo)
+                {
+                    printf("Codigo: %d\n", veiculo_atual.codigo);
+                    linhaCol(lin1 + 42, col1 + 2);
+                    printf("Descricao: %s\n", veiculo_atual.descricao);
+                    linhaCol(lin1 + 44, col1 + 2);
+                    printf("Modelo: %s\n", veiculo_atual.modelo);
+                    linhaCol(lin1 + 46, col1 + 2);
+                    printf("Cor: %s\n", veiculo_atual.cor);
+                    linhaCol(lin1 + 48, col1 + 2);
+                    printf("Placa: %s\n", veiculo_atual.placa);
+                    linhaCol(lin1 + 50, col1 + 2);
+                    printf("Diaria: %.2f\n", veiculo_atual.valor_diaria);
+                    linhaCol(lin1 + 52, col1 + 2);
+                    printf("Numero de ocupantes: %d\n", veiculo_atual.ocupantes);
+                    linhaCol(lin1 + 54, col1 + 2);
+                    printf("Status: %s\n", veiculo_atual.status);
+                    linhaCol(lin1 + 56, col1 + 2);
+                }
+            }
+            aux = 1;
 
-        printf("Cliente: ");
-        exibir_cliente_por_codigo(locacao_atual.codigo_cliente);
+            for (int i = 0; i < 2; i++)
+            {
+                printf("\n");
+            }
 
-        printf("Veiculo: ");
-        exibir_veiculo_por_codigo(locacao_atual.codigo_veiculo);
-
-        printf("Seguro: %s\n", (locacao_atual.seguro == 1) ? "Sim" : "Nao");
-        printf("Quantidade de Dias: %d\n", locacao_atual.quantidade_dias);
-        printf("Valor do Aluguel: %.2f\n", locacao_atual.valor_aluguel);
-        drawLine(1, 40, 1);
-        aux = 1;
+            lin1 = lin2 + 2;
+            lin2 = lin1 + 56;
+        }
     }
 
     if (aux == 0)
     {
-        printf("Nao tem nenhuma locacao feita.");
+        printf("Nao tem nenhuma locacao ativa.");
     }
 
+    printf("\n");
     printf("\nPressione Enter para continuar...\n");
     while (getch() != '\r')
         ;
 
     fclose(arquivo_locacoes);
+    fclose(arquivo_clientes);
+    fclose(arquivo_veiculos);
 }
 
-void mostrar_locacoes_cliente(Locacao locacoes[], int num_locacoes, int codigo_cliente)
+void mostrar_locacoes_ativas_cliente(int codigo_cliente)
 {
     int aux = 0;
     FILE *arquivo_locacoes = fopen("locacoes.bin", "rb");
@@ -742,6 +1096,29 @@ void mostrar_locacoes_cliente(Locacao locacoes[], int num_locacoes, int codigo_c
             ;
         return;
     }
+
+    FILE *arquivo_clientes = fopen("clientes.bin", "rb");
+
+    if (arquivo_clientes == NULL)
+    {
+        printf("Erro ao abrir o arquivo de clientes para leitura.\n");
+        fclose(arquivo_clientes);
+    }
+
+    Cliente cliente_atual;
+
+    FILE *arquivo_veiculos = fopen("veiculos.bin", "rb");
+
+    if (arquivo_veiculos == NULL)
+    {
+        printf("Erro ao abrir o arquivo de veículos para leitura.\n");
+        printf("Pressione Enter para continuar...");
+        while (getch() != '\r')
+            ;
+        return;
+    }
+
+    Veiculo veiculo_atual;
 
     if (!cliente_existe(codigo_cliente))
     {
@@ -754,76 +1131,111 @@ void mostrar_locacoes_cliente(Locacao locacoes[], int num_locacoes, int codigo_c
     }
 
     Locacao locacao_atual;
+    int lin1 = 1, col1 = 1, lin2 = 56, col2 = 60;
 
     while (fread(&locacao_atual, sizeof(Locacao), 1, arquivo_locacoes) == 1)
     {
+        setlocale(LC_ALL, "C");
+
         if (locacao_atual.codigo_cliente == codigo_cliente)
         {
-            printf("\nCodigo da Locacao: %d\n", locacao_atual.codigo);
-            printf("Data de Retirada: %s\n", locacao_atual.data_retirada);
-            printf("Data de Devolucao: %s\n", locacao_atual.data_devolucao);
+            if (strcmp(locacao_atual.status, "Ativa") == 0)
+            {
+                box(lin1, col1, lin2, col2);
+                linhaCol(lin1 + 2, col1 + 25);
+                printf("LOCA MAIS");
+                linhaCol(lin1 + 4, col1 + 20);
+                printf("LOCACAO DO CLIENTE");
+                linhaCol(lin1 + 6, col1 + 2);
+                drawLine(1, 56, 1);
+                linhaCol(lin1 + 8, col1 + 2);
+                printf("Codigo da Locacao: %d\n", locacao_atual.codigo);
+                linhaCol(lin1 + 10, col1 + 2);
+                printf("Data de Retirada: %s\n", locacao_atual.data_retirada);
+                linhaCol(lin1 + 12, col1 + 2);
+                printf("Data de Devolucao: %s\n", locacao_atual.data_devolucao);
+                linhaCol(lin1 + 14, col1 + 2);
+                printf("Seguro: %s\n", (locacao_atual.seguro == 1) ? "Sim" : "Nao");
+                linhaCol(lin1 + 16, col1 + 2);
+                printf("Quantidade de Dias alugado: %d\n", locacao_atual.quantidade_dias);
+                linhaCol(lin1 + 18, col1 + 2);
+                printf("Valor do Aluguel: %.2f\n", locacao_atual.valor_aluguel);
+                linhaCol(lin1 + 20, col1 + 2);
+                printf("Situacao da locacao: %s\n", locacao_atual.status);
+                linhaCol(lin1 + 22, col1 + 2);
+                drawLine(1, 56, 1);
+                linhaCol(lin1 + 24, col1 + 2);
+                printf("Dados do cliente: ");
+                linhaCol(lin1 + 26, col1 + 2);
+                fseek(arquivo_clientes, 0, SEEK_SET);
+                while (fread(&cliente_atual, sizeof(Cliente), 1, arquivo_clientes) == 1)
+                {
+                    if (cliente_atual.codigo == locacao_atual.codigo_cliente)
+                    {
+                        printf("Codigo: %d\n", cliente_atual.codigo);
+                        linhaCol(lin1 + 28, col1 + 2);
+                        printf("Endereco: %s\n", cliente_atual.endereco);
+                        linhaCol(lin1 + 30, col1 + 2);
+                        printf("Telefone: %s\n", cliente_atual.telefone);
+                        linhaCol(lin1 + 32, col1 + 2);
+                        printf("Pontos de fidelidade: %d\n", cliente_atual.pontos_fidelidade);
+                        linhaCol(lin1 + 34, col1 + 2);
+                        printf("Desconto: %s\n", (cliente_atual.desconto == 1) ? "Sim (10%%)" : "Nao");
+                        linhaCol(lin1 + 36, col1 + 2);
+                    }
+                }
+                drawLine(1, 56, 1);
+                linhaCol(lin1 + 38, col1 + 2);
+                printf("Dados do veiculo: ");
+                fseek(arquivo_veiculos, 0, SEEK_SET);
+                linhaCol(lin1 + 40, col1 + 2);
+                while (fread(&veiculo_atual, sizeof(Veiculo), 1, arquivo_veiculos) == 1)
+                {
+                    if (veiculo_atual.codigo == locacao_atual.codigo_veiculo)
+                    {
+                        printf("Codigo: %d\n", veiculo_atual.codigo);
+                        linhaCol(lin1 + 42, col1 + 2);
+                        printf("Descricao: %s\n", veiculo_atual.descricao);
+                        linhaCol(lin1 + 44, col1 + 2);
+                        printf("Modelo: %s\n", veiculo_atual.modelo);
+                        linhaCol(lin1 + 46, col1 + 2);
+                        printf("Cor: %s\n", veiculo_atual.cor);
+                        linhaCol(lin1 + 48, col1 + 2);
+                        printf("Placa: %s\n", veiculo_atual.placa);
+                        linhaCol(lin1 + 50, col1 + 2);
+                        printf("Diaria: %.2f\n", veiculo_atual.valor_diaria);
+                        linhaCol(lin1 + 52, col1 + 2);
+                        printf("Numero de ocupantes: %d\n", veiculo_atual.ocupantes);
+                        linhaCol(lin1 + 54, col1 + 2);
+                        printf("Status: %s\n", veiculo_atual.status);
+                        linhaCol(lin1 + 56, col1 + 2);
+                    }
+                }
+                for (int i = 0; i < 2; i++)
+                {
+                    printf("\n");
+                }
 
-            printf("Cliente: ");
-            exibir_cliente_por_codigo(locacao_atual.codigo_cliente);
-
-            printf("Veiculo: ");
-            exibir_veiculo_por_codigo(locacao_atual.codigo_veiculo);
-
-            printf("Seguro: %s\n", (locacao_atual.seguro == 1) ? "Sim" : "Nao");
-            printf("Quantidade de Dias: %d\n", locacao_atual.quantidade_dias);
-            printf("Valor do Aluguel: %.2f\n", locacao_atual.valor_aluguel);
-            drawLine(1, 40, 1);
-            fclose(arquivo_locacoes);
-            aux = 1;
+                lin1 = lin2 + 2;
+                lin2 = lin1 + 56;
+                aux = 1;
+            }
         }
     }
+    setlocale(LC_ALL, " ");
     if (aux == 0)
     {
-        printf("O cliente nao tem locacoes.\n");
+        printf("O cliente nao tem locacoes ativas.\n");
     }
+
+    printf("\n");
     printf("\nPressione Enter para continuar...\n");
     while (getch() != '\r')
         ;
 
     fclose(arquivo_locacoes);
-}
-
-void premiar_clientes()
-{
-    int aux = 0;
-    FILE *file_clientes = fopen("clientes.bin", "rb");
-
-    if (file_clientes == NULL)
-    {
-        printf("Erro ao abrir arquivo de clientes.\n");
-        printf("\nPressione Enter para continuar...\n");
-        while (getch() != '\r')
-            ;
-        return;
-    }
-
-    Cliente cliente;
-
-    while (fread(&cliente, sizeof(Cliente), 1, file_clientes) == 1)
-    {
-        if (cliente.pontos_fidelidade >= 500)
-        {
-            printf("Codigo: %d, Nome: %s, Pontos de Fidelidade: %d\n", cliente.codigo, cliente.nome, cliente.pontos_fidelidade);
-            drawLine(1, 30, 1);
-            debitar_pontos_fidelidade(cliente.codigo);
-            aux = 1;
-        }
-    }
-
-    if (aux == 0)
-    {
-        printf("Nenhum cliente atingiu o numero de pontos para ser premiado.\n");
-    }
-    printf("\nPressione Enter para continuar...\n");
-    while (getch() != '\r')
-        ;
-
-    fclose(file_clientes);
+    fclose(arquivo_clientes);
+    fclose(arquivo_veiculos);
 }
 
 void exibirTotalGeral()
@@ -842,8 +1254,22 @@ void exibirTotalGeral()
 
     fread(&totais, sizeof(Total), 1, arquivo_totais);
 
-    printf("Total Geral: R$ %.2f\n", totais.total);
+    int lin1 = 1, col1 = 1, lin2 = 10, col2 = 50;
 
+    setlocale(LC_ALL, "C");
+    box(lin1, col1, lin2, col2);
+    linhaCol(lin1 + 2, col1 + 20);
+    printf("LOCA MAIS");
+    linhaCol(lin1 + 4, col1 + 10);
+    printf("TOTAL FATURADO ATE O MOMENTO");
+    linhaCol(lin1 + 6, col1 + 2);
+    drawLine(1, 45, 1);
+    linhaCol(lin1 + 8, col1 + 2);
+    printf("RECEITA TOTAL: R$ %.2f\n", totais.total);
+    linhaCol(lin1 + 10, col1 + 2);
+    setlocale(LC_ALL, "");
+
+    printf("\n");
     printf("\nPressione Enter para continuar...\n");
     while (getch() != '\r')
         ;
@@ -863,36 +1289,168 @@ void exibirRelatorioFaturamento()
         return;
     }
 
-    Locacao locacao;
-    char data_entrega[11];
-    int dias_atraso = 0, valor_multa_por_dias = 0;
-    float valor_multa_porcentagem = 0, subtotal = 0, total = 0;
+    Faturamento faturamento;
 
-    printf("\nRelatorio de Faturamento:\n");
+    int lin1 = 1, col1 = 1, lin2 = 44, col2 = 65;
 
-    while (fread(&locacao, sizeof(Locacao), 1, arquivo_faturamento) == 1 &&
-           fread(data_entrega, sizeof(char), sizeof(data_entrega), arquivo_faturamento) == sizeof(data_entrega) &&
-           fread(&dias_atraso, sizeof(int), 1, arquivo_faturamento) == 1 &&
-           fread(&valor_multa_por_dias, sizeof(int), 1, arquivo_faturamento) == 1 &&
-           fread(&valor_multa_porcentagem, sizeof(float), 1, arquivo_faturamento) == 1 &&
-           fread(&subtotal, sizeof(float), 1, arquivo_faturamento) == 1 &&
-           fread(&total, sizeof(float), 1, arquivo_faturamento) == 1)
+    while (fread(&faturamento, sizeof(Faturamento), 1, arquivo_faturamento) == 1)
     {
-        drawLine(1, 50, 1);
-        printf("\nCodigo da Locacao: %d\n", locacao.codigo);
-        printf("Valor do Aluguel: %.2f\n", locacao.valor_aluguel);
-        printf("Data de Entrega: %s\n", data_entrega);
-        printf("Dias de Atraso: %d\n", dias_atraso);
-        printf("Valor da Multa por Dias de Atraso: %d\n", valor_multa_por_dias);
-        printf("Taxa de 5%% pelo Atraso: %.2f\n", valor_multa_porcentagem);
-        printf("Subtotal: %.2f\n", subtotal);
-        printf("Total: %.2f\n", total);
-        drawLine(1, 50, 1);
+        setlocale(LC_ALL, "C");
+
+        box(lin1, col1, lin2, col2);
+        linhaCol(lin1 + 2, col1 + 25);
+        printf("LOCA MAIS");
+        linhaCol(lin1 + 4, col1 + 20);
+        printf("RECIBO DE FATURAMENTO");
+        linhaCol(lin1 + 6, col1 + 2);
+        drawLine(1, 60, 1);
+        linhaCol(lin1 + 8, col1 + 2);
+        printf("Codigo do faturamento: %d", faturamento.codigo);
+        linhaCol(lin1 + 10, col1 + 2);
+        printf("Codigo do cliente: %d", faturamento.codigo_cliente);
+        linhaCol(lin1 + 12, col1 + 2);
+        printf("Data de retirada do veiculo: %s", faturamento.data_retirada);
+        linhaCol(lin1 + 14, col1 + 2);
+        printf("Data de devolucao acordada: %s", faturamento.data_devolucao);
+        linhaCol(lin1 + 16, col1 + 2);
+        printf("Data de Entrega: %s\n", faturamento.data_entrega);
+        linhaCol(lin1 + 18, col1 + 2);
+        printf("Valor do seguro: %.2f\n", faturamento.seguro);
+        linhaCol(lin1 + 20, col1 + 2);
+        printf("Valor da diaria do carro: %.2f", faturamento.diaria);
+        linhaCol(lin1 + 22, col1 + 2);
+        printf("Dias de Atraso: %d\n", faturamento.dias_atraso);
+        linhaCol(lin1 + 24, col1 + 2);
+        printf("Valor do aluguel: %.2f\n", faturamento.alguel_acordado);
+        linhaCol(lin1 + 26, col1 + 2);
+        printf("Situacao da locacao: %s", faturamento.status_locacao);
+        linhaCol(lin1 + 28, col1 + 2);
+        printf("Desconto: %.2f\n", faturamento.desconto);
+        linhaCol(lin1 + 30, col1 + 2);
+        drawLine(1, 60, 1);
+        linhaCol(lin1 + 32, col1 + 2);
+        printf("Subtotal: %.2f\n", faturamento.subtotal);
+        linhaCol(lin1 + 34, col1 + 2);
+        drawLine(1, 60, 1);
+        linhaCol(lin1 + 36, col1 + 2);
+        printf("Valor da multa por dias de atraso: %.2f\n", faturamento.valor_multa_por_dias);
+        linhaCol(lin1 + 38, col1 + 2);
+        printf("Taxa de 5%% pelo atraso: %.2f\n", faturamento.valor_multa_porcentagem);
+        linhaCol(lin1 + 40, col1 + 2);
+        drawLine(1, 60, 1);
+        linhaCol(lin1 + 42, col1 + 2);
+        printf("Total: %.2f\n", faturamento.valor_aluguel);
+        linhaCol(lin1 + 44, col1 + 2);
+        setlocale(LC_ALL, "");
         aux = 1;
+        for (int i = 0; i < 2; i++)
+        {
+            printf("\n");
+        }
+
+        lin1 = lin2 + 2;
+        lin2 = lin1 + 44;
     }
+    setlocale(LC_ALL, " ");
+
     if (aux == 0)
     {
         printf("\nAinda nao temos valores faturados.\n");
+    }
+
+    printf("\nPressione Enter para continuar...\n");
+    while (getch() != '\r')
+        ;
+    fclose(arquivo_faturamento);
+    return;
+}
+
+void exibirRelatorioFaturamentoCliente(int codigo_cliente)
+{
+    int aux = 0;
+    FILE *arquivo_faturamento = fopen("faturamento.bin", "rb");
+    if (arquivo_faturamento == NULL)
+    {
+        printf("Erro ao abrir o arquivo de faturamento para leitura.\n");
+        printf("\nPressione Enter para continuar...\n");
+        while (getch() != '\r')
+            ;
+        return;
+    }
+
+    Faturamento faturamento;
+
+    int lin1 = 1, col1 = 1, lin2 = 44, col2 = 65;
+
+    while (fread(&faturamento, sizeof(Faturamento), 1, arquivo_faturamento) == 1)
+    {
+        if (strcmp(faturamento.status_locacao, "Finalizada") == 0)
+        {
+            if (faturamento.codigo_cliente == codigo_cliente)
+            {
+                setlocale(LC_ALL, "C");
+
+                box(lin1, col1, lin2, col2);
+                linhaCol(lin1 + 2, col1 + 25);
+                printf("LOCA MAIS");
+                linhaCol(lin1 + 4, col1 + 20);
+                printf("RECIBO DE FATURAMENTO");
+                linhaCol(lin1 + 6, col1 + 2);
+                drawLine(1, 55, 1);
+                linhaCol(lin1 + 8, col1 + 2);
+                printf("Codigo do faturamento: %d", faturamento.codigo);
+                linhaCol(lin1 + 10, col1 + 2);
+                printf("Codigo do cliente: %d", faturamento.codigo_cliente);
+                linhaCol(lin1 + 12, col1 + 2);
+                printf("Data de retirada do veiculo: %s", faturamento.data_retirada);
+                linhaCol(lin1 + 14, col1 + 2);
+                printf("Data de devolucao acordada: %s", faturamento.data_devolucao);
+                linhaCol(lin1 + 16, col1 + 2);
+                printf("Data de Entrega: %s\n", faturamento.data_entrega);
+                linhaCol(lin1 + 18, col1 + 2);
+                printf("Valor do seguro: %.2f\n", faturamento.seguro);
+                linhaCol(lin1 + 20, col1 + 2);
+                printf("Valor da diaria do carro: %.2f", faturamento.diaria);
+                linhaCol(lin1 + 22, col1 + 2);
+                printf("Dias de Atraso: %d\n", faturamento.dias_atraso);
+                linhaCol(lin1 + 24, col1 + 2);
+                printf("Valor do aluguel: %.2f\n", faturamento.alguel_acordado);
+                linhaCol(lin1 + 26, col1 + 2);
+                printf("Situacao da locacao: %s", faturamento.status_locacao);
+                linhaCol(lin1 + 28, col1 + 2);
+                printf("Desconto: %.2f\n", faturamento.desconto);
+                linhaCol(lin1 + 30, col1 + 2);
+                drawLine(1, 55, 1);
+                linhaCol(lin1 + 32, col1 + 2);
+                printf("Subtotal: %.2f\n", faturamento.subtotal);
+                linhaCol(lin1 + 34, col1 + 2);
+                drawLine(1, 55, 1);
+                linhaCol(lin1 + 36, col1 + 2);
+                printf("Valor da multa por dias de atraso: %.2f\n", faturamento.valor_multa_por_dias);
+                linhaCol(lin1 + 38, col1 + 2);
+                printf("Taxa de 5%% pelo atraso: %.2f\n", faturamento.valor_multa_porcentagem);
+                linhaCol(lin1 + 40, col1 + 2);
+                drawLine(1, 55, 1);
+                linhaCol(lin1 + 42, col1 + 2);
+                printf("Total: %.2f\n", faturamento.valor_aluguel);
+                linhaCol(lin1 + 44, col1 + 2);
+                setlocale(LC_ALL, "");
+                aux = 1;
+                for (int i = 0; i < 2; i++)
+                {
+                    printf("\n");
+                }
+
+                lin1 = lin2 + 2;
+                lin2 = lin1 + 42;
+            }
+        }
+    }
+    setlocale(LC_ALL, " ");
+
+    if (aux == 0)
+    {
+        printf("\nO cliente ainda nao tem locacoes faturadas.\n");
     }
 
     printf("\nPressione Enter para continuar...\n");

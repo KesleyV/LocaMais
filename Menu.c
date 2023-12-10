@@ -11,29 +11,64 @@
 #include <locale.h>
 #include <stdbool.h>
 #include "Decorador.h"
-
-Cliente clientes[MAX_CLIENTES];
-Veiculo veiculos[MAX_VEICULOS];
-Locacao locacoes[MAX_LOCACOES];
-
-int num_clientes = 0;
-int num_veiculos = 0;
-int num_locacoes = 0;
+#include <time.h>
 
 // funções auxiliares
 int validarFormatoData(const char *data)
 {
     int dia, mes, ano;
+
     if (sscanf(data, "%d/%d/%d", &dia, &mes, &ano) == 3)
     {
         if (ano >= 1000 && ano <= 9999)
         {
-            return 1;
+            if (mes >= 1 && mes <= 12)
+            {
+                int dias_no_mes;
+
+                switch (mes)
+                {
+                case 4:
+                case 6:
+                case 9:
+                case 11:
+                    dias_no_mes = 30;
+                    break;
+                case 2:
+                    if ((ano % 4 == 0 && ano % 100 != 0) || (ano % 400 == 0))
+                    {
+                        dias_no_mes = 29; // Ano bissexto
+                    }
+                    else
+                    {
+                        dias_no_mes = 28;
+                    }
+                    break;
+                default:
+                    dias_no_mes = 31;
+                    break;
+                }
+
+                if (dia >= 1 && dia <= dias_no_mes)
+                {
+                    struct tm inputDate = {0};
+                    inputDate.tm_year = ano - 1900;
+                    inputDate.tm_mon = mes - 1;
+                    inputDate.tm_mday = dia;
+
+                    time_t inputTime = mktime(&inputDate);
+
+                    if (inputTime != -1 && difftime(inputTime, time(NULL)) >= 0)
+                    {
+                        return 1; // Data válida
+                    }
+                }
+            }
         }
     }
-    return 0;
-}
 
+    return 0; // Data inválida
+}
 int validarIntervaloDatas(const char *data_retirada, const char *data_devolucao)
 {
     int dia_ret, mes_ret, ano_ret, dia_dev, mes_dev, ano_dev;
@@ -97,42 +132,25 @@ void menu()
         case 1:
         {
             limpar_console();
-            char opcoes_cliente[5][40] = {
+            char opcoes_cliente[7][40] = {
                 "Cadastrar Cliente",
                 "Exibir todos os clientes",
                 "Pesquisar Cliente",
-                "Remover cliente",
+                "Desativar cliente",
+                "Reativar cliente",
                 "Voltar"};
 
-            int opcao_cliente = estiliza_menu(2, 2, 5, opcoes_cliente);
+            int opcao_cliente = estiliza_menu(2, 2, 6, opcoes_cliente);
 
             switch (opcao_cliente)
             {
             case 1:
             {
                 limpar_console();
-                int codigo;
                 char nome[50];
                 char endereco[150];
                 char telefone[13];
 
-                do
-                {
-                    printf("Digite o codigo do cliente: ");
-                    if (scanf("%d", &codigo) != 1)
-                    {
-                        printf("Entrada invalida. O codigo deve ser um numero inteiro.\n");
-                        while (getchar() != '\n')
-                            ;
-                    }
-                    else
-                    {
-                        break;
-                    }
-                } while (1);
-
-                while (getchar() != '\n')
-                    ;
                 do
                 {
                     printf("Digite o nome do cliente: ");
@@ -197,7 +215,7 @@ void menu()
                         break;
                     }
                 } while (1);
-                cadastrar_cliente(codigo, nome, endereco, telefone);
+                cadastrar_cliente(nome, endereco, telefone);
                 break;
             }
             case 2:
@@ -251,53 +269,17 @@ void menu()
 
                 while (getchar() != '\n')
                     ;
-                remover_cliente(codigo_cliente);
+                desativar_cliente(codigo_cliente);
                 break;
             }
             case 5:
-                limpar_console();
-                break;
-            default:
-                printf("Opcao invalida. Tente novamente.\n");
-                break;
-            }
-            break;
-        }
-        case 2:
-        {
-            limpar_console();
-            char opcoes_veiculo[10][40] = {
-                "Cadastrar Veiculo",
-                "Exibir todos os veiculos",
-                "Pesquisar Veiculo",
-                "Remover veiculo",
-                "Exibir veiculos alugados",
-                "Exibir veiculos em manutencao",
-                "Retirar veiculo da manutencao",
-                "Enviar veiculo para manutencao",
-                "Exibir veiculos disponiveis",
-                "Voltar"};
-
-            int opcao_veiculo = estiliza_menu(2, 2, 10, opcoes_veiculo);
-
-            switch (opcao_veiculo)
-            {
-            case 1:
             {
                 limpar_console();
-                int codigo;
-                char descricao[100];
-                char modelo[50];
-                char cor[20];
-                char placa[10];
-                float valor_diaria;
-                int ocupantes;
-                char status[20];
-
+                int codigo_cliente;
                 do
                 {
-                    printf("Digite o codigo do veiculo: ");
-                    if (scanf("%d", &codigo) != 1)
+                    printf("Digite o codigo do cliente: ");
+                    if (scanf("%d", &codigo_cliente) != 1)
                     {
                         printf("Entrada invalida. O codigo deve ser um numero inteiro.\n");
                         while (getchar() != '\n')
@@ -311,6 +293,53 @@ void menu()
 
                 while (getchar() != '\n')
                     ;
+                reativar_cliente(codigo_cliente);
+                break;
+            }
+            case 6:
+            {
+                limpar_console();
+                break;
+            }
+            default:
+            {
+                limpar_console();
+                printf("Opcao invalida. Tente novamente.\n");
+                break;
+            }
+            }
+            break;
+        }
+        case 2:
+        {
+            limpar_console();
+            char opcoes_veiculo[13][40] = {
+                "Cadastrar Veiculo",
+                "Exibir todos os veiculos",
+                "Pesquisar Veiculo",
+                "Desativar veiculo",
+                "Reativar veiculo",
+                "Exibir veiculos disponiveis",
+                "Exibir veiculos alugados",
+                "Exibir veiculos em manutencao",
+                "Retirar veiculo da manutencao",
+                "Enviar veiculo para manutencao",
+                "Voltar"};
+
+            int opcao_veiculo = estiliza_menu(2, 2, 11, opcoes_veiculo);
+
+            switch (opcao_veiculo)
+            {
+            case 1:
+            {
+                limpar_console();
+                char descricao[100];
+                char modelo[50];
+                char cor[20];
+                char placa[10];
+                float valor_diaria;
+                int ocupantes;
+                char status[20];
 
                 do
                 {
@@ -437,7 +466,7 @@ void menu()
                     }
                 } while (1);
 
-                cadastrar_veiculo(veiculos, &num_veiculos, codigo, descricao, modelo, cor, placa, valor_diaria, ocupantes, status);
+                cadastrar_veiculo(descricao, modelo, cor, placa, valor_diaria, ocupantes, status);
                 break;
             }
             case 2:
@@ -491,22 +520,52 @@ void menu()
 
                 while (getchar() != '\n')
                     ;
-                remover_veiculo(codigo_veiculo);
+                desativar_veiculo(codigo_veiculo);
                 break;
             }
             case 5:
             {
                 limpar_console();
-                exibir_veiculos_alugados();
+                int codigo_veiculo;
+                do
+                {
+                    printf("Digite o codigo do veiculo: ");
+                    if (scanf("%d", &codigo_veiculo) != 1)
+                    {
+                        printf("Entrada invalida. O codigo deve ser um numero inteiro.\n");
+                        while (getchar() != '\n')
+                            ;
+                    }
+                    else
+                    {
+                        break;
+                    }
+                } while (1);
+
+                while (getchar() != '\n')
+                    ;
+                reativar_veiculo(codigo_veiculo);
                 break;
             }
             case 6:
             {
                 limpar_console();
-                exibir_veiculos_em_manutencao();
+                exibir_veiculos_disponiveis();
                 break;
             }
             case 7:
+            {
+                limpar_console();
+                exibir_veiculos_alugados();
+                break;
+            }
+            case 8:
+            {
+                limpar_console();
+                exibir_veiculos_em_manutencao();
+                break;
+            }
+            case 9:
             {
                 limpar_console();
                 int codigo_veiculo;
@@ -530,7 +589,7 @@ void menu()
                 remover_veiculo_da_manutencao(codigo_veiculo);
                 break;
             }
-            case 8:
+            case 10:
             {
                 limpar_console();
                 int codigo_veiculo;
@@ -554,30 +613,36 @@ void menu()
                 colocar_veiculo_em_manutencao(codigo_veiculo);
                 break;
             }
-            case 9:
+            case 11:
             {
                 limpar_console();
                 exibir_veiculos_disponiveis();
                 break;
             }
-            case 10:
+            case 12:
+            {
+                limpar_console();
                 break;
+            }
             default:
+            {
+                limpar_console();
                 printf("Opcao invalida. Tente novamente.\n");
                 break;
+            }
             }
             break;
         }
         case 3:
         {
             limpar_console();
-            char opcoes_locacao[8][40] = {
+            char opcoes_locacao[9][40] = {
                 "Cadastrar Locacao",
-                "Exibir todas as locacoes",
-                "Mostrar Locacoes de Cliente",
+                "Exibir locacoes ativas",
+                "Exibir locacoes ativas do cliente",
                 "Dar Baixa em Locacao",
-                "Premiar clientes",
-                "Exibir relatorio de faturamento",
+                "Exibir faturamento do cliente",
+                "Exibir faturamento geral",
                 "Exibir total faturado",
                 "Voltar"};
 
@@ -588,7 +653,6 @@ void menu()
             case 1:
             {
                 limpar_console();
-                int codigo_locacao;
                 char data_retirada[11];
                 char data_devolucao[11];
                 int seguro;
@@ -597,28 +661,10 @@ void menu()
 
                 do
                 {
-                    printf("Digite o codigo da locacao: ");
-                    if (scanf("%d", &codigo_locacao) != 1)
-                    {
-                        printf("Entrada invalida. O codigo deve ser um numero inteiro.\n");
-                        while (getchar() != '\n')
-                            ;
-                    }
-                    else
-                    {
-                        break;
-                    }
-                } while (1);
-
-                while (getchar() != '\n')
-                    ;
-
-                do
-                {
                     printf("Digite a data de retirada (formato: dd/mm/yyyy): ");
                     if (scanf("%s", data_retirada) != 1 || !validarFormatoData(data_retirada))
                     {
-                        printf("Entrada invalida. Formato da data incorreto.\n");
+                        printf("Entrada invalida. A data tem que obedecer o formato correto e nenhum veiculo pode ser alugado com menos de um dia de antecedencia a contar da data de hoje.\n");
                         while (getchar() != '\n')
                             ;
                     }
@@ -635,7 +681,7 @@ void menu()
                     printf("Digite a data de devolucao (formato: dd/mm/yyyy): ");
                     if (scanf("%s", data_devolucao) != 1 || !validarFormatoData(data_devolucao) || !validarIntervaloDatas(data_retirada, data_devolucao))
                     {
-                        printf("Entrada invalida. Formato da data incorreto ou intervalo inválido.\n");
+                        printf("Entrada invalida. A data tem que obedecer o formato correto e o seu intervalo tem que ser maior ou igual que 1 dia a partir da data de retirada.\n");
                         while (getchar() != '\n')
                             ;
                     }
@@ -701,13 +747,13 @@ void menu()
                 while (getchar() != '\n')
                     ;
 
-                cadastrar_locacao(codigo_locacao, data_retirada, data_devolucao, seguro, codigo_cliente, numero_ocupantes);
+                cadastrar_locacao(data_retirada, data_devolucao, seguro, codigo_cliente, numero_ocupantes);
                 break;
             }
             case 2:
             {
                 limpar_console();
-                exibir_todas_locacoes();
+                exibir_todas_locacoes_ativas();
                 break;
             }
             case 3:
@@ -731,19 +777,55 @@ void menu()
 
                 while (getchar() != '\n')
                     ;
-                mostrar_locacoes_cliente(locacoes, num_locacoes, codigo_cliente);
+                mostrar_locacoes_ativas_cliente(codigo_cliente);
                 break;
             }
             case 4:
             {
                 limpar_console();
-                dar_baixa_locacao(locacoes, &num_locacoes, veiculos, clientes, &num_veiculos, &num_clientes);
+                int codigo_locacao;
+                do
+                {
+                    printf("Digite o codigo da locacao: ");
+                    if (scanf("%d", &codigo_locacao) != 1)
+                    {
+                        printf("Entrada invalida. O codigo deve ser um numero inteiro.\n");
+                        while (getchar() != '\n')
+                            ;
+                    }
+                    else
+                    {
+                        break;
+                    }
+                } while (1);
+
+                while (getchar() != '\n')
+                    ;
+                dar_baixa_locacao(codigo_locacao);
                 break;
             }
             case 5:
             {
                 limpar_console();
-                premiar_clientes();
+                int codigo_cliente;
+                do
+                {
+                    printf("Digite o codigo do cliente: ");
+                    if (scanf("%d", &codigo_cliente) != 1)
+                    {
+                        printf("Entrada invalida. O codigo do cliente deve ser um numero inteiro.\n");
+                        while (getchar() != '\n')
+                            ;
+                    }
+                    else
+                    {
+                        break;
+                    }
+                } while (1);
+
+                while (getchar() != '\n')
+                    ;
+                exibirRelatorioFaturamentoCliente(codigo_cliente);
                 break;
             }
             case 6:
@@ -759,18 +841,25 @@ void menu()
                 break;
             }
             case 8:
+            {
+                limpar_console();
                 break;
+            }
             default:
+            {
                 limpar_console();
                 printf("Opcao invalida. Tente novamente.\n");
                 break;
             }
+            }
             break;
         }
         default:
+        {
             limpar_console();
             printf("Opcao invalida. Tente novamente.\n");
             break;
+        }
         }
     }
 }

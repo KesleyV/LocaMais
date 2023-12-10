@@ -5,7 +5,6 @@
 #include "Cliente.h"
 #include "Veiculo.h"
 #include "Locacao.h"
-#include "constants.h"
 
 void menu();
 int validarFormatoData(const char *data);

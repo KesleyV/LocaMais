@@ -102,15 +102,58 @@ int verifica_status(int codigo_veiculo, const char *novo_status)
                     ;
                 return 1;
             }
+            else if (strcmp(veiculo.status, "Desativado") == 0)
+            {
+                printf("O status do veiculo nao pode ser alterado pois ja esta %s\n", novo_status);
+                printf("\nPressione Enter para continuar...\n");
+                while (getch() != '\r')
+                    ;
+                return 1;
+            }
+            else if (strcmp(veiculo.status, "Ativado") == 0)
+            {
+                printf("O status do veiculo nao pode ser alterado pois ja esta %s\n", novo_status);
+                printf("\nPressione Enter para continuar...\n");
+                while (getch() != '\r')
+                    ;
+                return 1;
+            }
         }
     }
 
     fclose(arquivo_veiculos);
 }
 
-// funções principais
-void cadastrar_veiculo(Veiculo veiculos[], int *num_veiculos, int codigo, const char *descricao, const char *modelo, const char *cor, const char *placa, float valor_diaria, int ocupantes, const char *status)
+int obter_proximo_codigo_veiculo()
 {
+    FILE *arquivo_codigo = fopen("codigo_veiculo.bin", "rb+");
+
+    if (arquivo_codigo == NULL)
+    {
+        arquivo_codigo = fopen("codigo_veiculo.bin", "wb+");
+        CodigoVeiculo valor_inicial = {1};
+        fwrite(&valor_inicial, sizeof(CodigoVeiculo), 1, arquivo_codigo);
+        fclose(arquivo_codigo);
+        return valor_inicial.codigo;
+    }
+
+    CodigoVeiculo codigo_veiculo;
+    fread(&codigo_veiculo, sizeof(CodigoVeiculo), 1, arquivo_codigo);
+
+    codigo_veiculo.codigo++;
+
+    rewind(arquivo_codigo);
+    fwrite(&codigo_veiculo, sizeof(CodigoVeiculo), 1, arquivo_codigo);
+
+    fclose(arquivo_codigo);
+
+    return codigo_veiculo.codigo;
+}
+
+// funções principais
+void cadastrar_veiculo(const char *descricao, const char *modelo, const char *cor, const char *placa, float valor_diaria, int ocupantes, const char *status)
+{
+    int codigo = obter_proximo_codigo_veiculo();
     if (veiculo_existe(codigo))
     {
         printf("Veiculo ja cadastrado.\n");
@@ -140,9 +183,6 @@ void cadastrar_veiculo(Veiculo veiculos[], int *num_veiculos, int codigo, const 
     strncpy(novo_veiculo.status, status, sizeof(novo_veiculo.status) - 1);
     novo_veiculo.status[sizeof(novo_veiculo.status) - 1] = '\0';
 
-    veiculos[*num_veiculos] = novo_veiculo;
-    (*num_veiculos)++;
-
     FILE *arquivo_veiculos = fopen("veiculos.bin", "ab+");
 
     fwrite(&novo_veiculo, sizeof(Veiculo), 1, arquivo_veiculos);
@@ -163,30 +203,55 @@ void exibir_veiculos()
     {
         printf("Erro ao abrir o arquivo de veiculos para leitura.\n");
         return;
-        printf("\nPressione Enter para continuar...\n");
-        while (getch() != '\r')
-            ;
     }
 
     Veiculo veiculo;
 
+    int lin1 = 1, col1 = 1, lin2 = 24, col2 = 60;
     while (fread(&veiculo, sizeof(Veiculo), 1, arquivo_veiculos) == 1)
     {
-        printf("\nCodigo: %d\n", veiculo.codigo);
+        setlocale(LC_ALL, "C");
+
+        box(lin1, col1, lin2, col2);
+
+        linhaCol(lin1 + 2, col1 + 25);
+        printf("LOCA MAIS");
+        linhaCol(lin1 + 4, col1 + 25);
+        printf("VEICULOS");
+        linhaCol(lin1 + 6, col1 + 2);
+        drawLine(1, 55, 1);
+        linhaCol(lin1 + 8, col1 + 2);
+        printf("Codigo: %d\n", veiculo.codigo);
+        linhaCol(lin1 + 10, col1 + 2);
         printf("Descricao: %s\n", veiculo.descricao);
+        linhaCol(lin1 + 12, col1 + 2);
         printf("Modelo: %s\n", veiculo.modelo);
+        linhaCol(lin1 + 14, col1 + 2);
         printf("Cor: %s\n", veiculo.cor);
+        linhaCol(lin1 + 16, col1 + 2);
         printf("Placa: %s\n", veiculo.placa);
+        linhaCol(lin1 + 18, col1 + 2);
         printf("Valor diario: %.2f\n", veiculo.valor_diaria);
+        linhaCol(lin1 + 20, col1 + 2);
         printf("Ocupantes: %d\n", veiculo.ocupantes);
+        linhaCol(lin1 + 22, col1 + 2);
         printf("Status: %s\n", veiculo.status);
-        drawLine(1, 60, 1);
+
+        for (int i = 0; i < 2; i++)
+        {
+            printf("\n");
+        }
+
+        lin1 = lin2 + 2;
+        lin2 = lin1 + 24;
     }
 
-    fclose(arquivo_veiculos);
+    setlocale(LC_ALL, " ");
+
     printf("\nPressione Enter para continuar...\n");
     while (getch() != '\r')
         ;
+    fclose(arquivo_veiculos);
 }
 
 void pesquisar_veiculo(int codigo_veiculo)
@@ -204,53 +269,63 @@ void pesquisar_veiculo(int codigo_veiculo)
     }
 
     Veiculo veiculo;
+    int veiculo_encontrado = 0;
+
+    int lin1 = 2, col1 = 1, lin2 = 26, col2 = 60;
+
+    setlocale(LC_ALL, "C");
 
     while (fread(&veiculo, sizeof(Veiculo), 1, arquivo_veiculos) == 1)
     {
         if (veiculo.codigo == codigo_veiculo)
         {
-            drawLine(1, 50, 1);
-            printf("\nCodigo: %d\n", veiculo.codigo);
+            box(lin1, col1, lin2, col2);
+            linhaCol(lin1 + 2, col1 + 25);
+            printf("LOCA MAIS");
+            linhaCol(lin1 + 4, col1 + 25);
+            printf("VEICULOS");
+            linhaCol(lin1 + 6, col1 + 2);
+            drawLine(1, 55, 1);
+            linhaCol(lin1 + 8, col1 + 2);
+            printf("Codigo: %d\n", veiculo.codigo);
+            linhaCol(lin1 + 10, col1 + 2);
             printf("Descricao: %s\n", veiculo.descricao);
+            linhaCol(lin1 + 12, col1 + 2);
             printf("Modelo: %s\n", veiculo.modelo);
+            linhaCol(lin1 + 14, col1 + 2);
             printf("Cor: %s\n", veiculo.cor);
+            linhaCol(lin1 + 16, col1 + 2);
             printf("Placa: %s\n", veiculo.placa);
+            linhaCol(lin1 + 18, col1 + 2);
             printf("Valor diario: %.2f\n", veiculo.valor_diaria);
+            linhaCol(lin1 + 20, col1 + 2);
             printf("Ocupantes: %d\n", veiculo.ocupantes);
+            linhaCol(lin1 + 22, col1 + 2);
             printf("Status: %s\n", veiculo.status);
-            fclose(arquivo_veiculos);
-            drawLine(1, 50, 1);
-
-            printf("\nPressione Enter para continuar...\n");
-            while (getch() != '\r')
-                ;
-            return;
-        }
-        else
-        {
-            printf("Veiculo nao encontrado.\n");
-            printf("\nPressione Enter para continuar...\n");
-            while (getch() != '\r')
-                ;
-            return;
+            linhaCol(lin1 + 24, col1 + 2);
+            veiculo_encontrado = 1;
+            break;
         }
     }
 
     fclose(arquivo_veiculos);
-}
+    setlocale(LC_ALL, " ");
 
-void remover_veiculo(int codigo)
-{
-    if (!veiculo_existe(codigo))
+    if (!veiculo_encontrado)
     {
-        printf("Veiculo com o codigo especificado nao existe.\n");
-        printf("\nPressione Enter para continuar...\n");
-        while (getch() != '\r')
-            ;
-        return;
+        printf("Veiculo nao encontrado.\n");
     }
 
-    FILE *arquivo_veiculos = fopen("veiculos.bin", "rb");
+    printf("\nPressione Enter para continuar...\n");
+    while (getch() != '\r')
+        ;
+}
+
+void desativar_veiculo(int codigo_veiculo)
+{
+    const char *nome_arquivo = "veiculos.bin";
+    FILE *arquivo_veiculos = fopen(nome_arquivo, "rb");
+
     if (arquivo_veiculos == NULL)
     {
         printf("Erro ao abrir o arquivo de veiculos para leitura.\n");
@@ -259,68 +334,165 @@ void remover_veiculo(int codigo)
             ;
         return;
     }
-
-    FILE *novo_arquivo = fopen("veiculos_temp.bin", "wb");
-    if (novo_arquivo == NULL)
+    if (!veiculo_existe(codigo_veiculo))
     {
-        printf("Erro ao criar o arquivo temporario para escrita.\n");
+        printf("Veiculo nao encontrado.\n");
         printf("\nPressione Enter para continuar...\n");
         while (getch() != '\r')
             ;
-        fclose(arquivo_veiculos);
+        return;
+    }
+    if (verifica_status(codigo_veiculo, "Dasativado"))
+    {
         return;
     }
 
-    Veiculo veiculo_atual;
+    Veiculo veiculo;
+    int veiculo_encontrado = 0;
 
-    while (fread(&veiculo_atual, sizeof(Veiculo), 1, arquivo_veiculos) == 1)
+    int lin1 = 2, col1 = 1, lin2 = 26, col2 = 60;
+
+    setlocale(LC_ALL, "C");
+
+    while (fread(&veiculo, sizeof(Veiculo), 1, arquivo_veiculos) == 1)
     {
-        if (veiculo_atual.codigo != codigo)
+        if (veiculo.codigo == codigo_veiculo && strcmp(veiculo.status, "Disponivel") == 0)
         {
-            fwrite(&veiculo_atual, sizeof(Veiculo), 1, novo_arquivo);
-        }
-    }
-
-    fclose(arquivo_veiculos);
-    fclose(novo_arquivo);
-
-    if (access("veiculos.bin", F_OK) != -1)
-    {
-        if (remove("veiculos.bin") == 0)
-        {
-            if (rename("veiculos_temp.bin", "veiculos.bin") == 0)
-            {
-                printf("Veiculo removido com sucesso.\n");
-                printf("\nPressione Enter para continuar...\n");
-                while (getch() != '\r')
-                    ;
-            }
-            else
-            {
-                perror("Erro ao renomear o arquivo temporário");
-                printf("\nPressione Enter para continuar...\n");
-                while (getch() != '\r')
-                    ;
-            }
+            box(lin1, col1, lin2, col2);
+            linhaCol(lin1 + 2, col1 + 25);
+            printf("LOCA MAIS");
+            linhaCol(lin1 + 4, col1 + 25);
+            printf("VEICULOS");
+            linhaCol(lin1 + 6, col1 + 2);
+            drawLine(1, 55, 1);
+            linhaCol(lin1 + 8, col1 + 2);
+            printf("Codigo: %d\n", veiculo.codigo);
+            linhaCol(lin1 + 10, col1 + 2);
+            printf("Descricao: %s\n", veiculo.descricao);
+            linhaCol(lin1 + 12, col1 + 2);
+            printf("Modelo: %s\n", veiculo.modelo);
+            linhaCol(lin1 + 14, col1 + 2);
+            printf("Cor: %s\n", veiculo.cor);
+            linhaCol(lin1 + 16, col1 + 2);
+            printf("Placa: %s\n", veiculo.placa);
+            linhaCol(lin1 + 18, col1 + 2);
+            printf("Valor diario: %.2f\n", veiculo.valor_diaria);
+            linhaCol(lin1 + 20, col1 + 2);
+            printf("Ocupantes: %d\n", veiculo.ocupantes);
+            linhaCol(lin1 + 22, col1 + 2);
+            printf("Status: %s\n", veiculo.status);
+            linhaCol(lin1 + 24, col1 + 2);
+            veiculo_encontrado = 1;
+            fclose(arquivo_veiculos);
+            break;
         }
         else
         {
-            perror("Erro ao remover o arquivo original");
+            printf("\nVoce so pode desativar veiculos que estejam com o status Disponivel.\n");
             printf("\nPressione Enter para continuar...\n");
             while (getch() != '\r')
                 ;
+            fclose(arquivo_veiculos);
+            return;
         }
     }
-    else
+
+    setlocale(LC_ALL, "");
+
+    atualizar_status(codigo_veiculo, "Desativado");
+    fclose(arquivo_veiculos);
+
+    printf("\nO veiculo exibido acima foi desativado com sucesso. Agora nao e mais possivel realizar operacoes com o mesmo.\n");
+    printf("\nPressione Enter para continuar...\n");
+    while (getch() != '\r')
+        ;
+}
+
+void reativar_veiculo(int codigo_veiculo)
+{
+    const char *nome_arquivo = "veiculos.bin";
+    FILE *arquivo_veiculos = fopen(nome_arquivo, "rb");
+
+    if (arquivo_veiculos == NULL)
     {
-        printf("Arquivo original nao encontrado.\n");
+        printf("Erro ao abrir o arquivo de veiculos para leitura.\n");
         printf("\nPressione Enter para continuar...\n");
         while (getch() != '\r')
             ;
+        return;
+    }
+    if (!veiculo_existe(codigo_veiculo))
+    {
+        printf("Veiculo nao encontrado.\n");
+        printf("\nPressione Enter para continuar...\n");
+        while (getch() != '\r')
+            ;
+        return;
+    }
+    if (verifica_status(codigo_veiculo, "Disponivel"))
+    {
+        return;
     }
 
+    Veiculo veiculo;
+    int veiculo_encontrado = 0;
+
+    int lin1 = 2, col1 = 1, lin2 = 26, col2 = 60;
+
+    setlocale(LC_ALL, "C");
+
+    while (fread(&veiculo, sizeof(Veiculo), 1, arquivo_veiculos) == 1)
+    {
+        if (veiculo.codigo == codigo_veiculo && strcmp(veiculo.status, "Desativado") == 0)
+        {
+            box(lin1, col1, lin2, col2);
+            linhaCol(lin1 + 2, col1 + 25);
+            printf("LOCA MAIS");
+            linhaCol(lin1 + 4, col1 + 25);
+            printf("VEICULOS");
+            linhaCol(lin1 + 6, col1 + 2);
+            drawLine(1, 55, 1);
+            linhaCol(lin1 + 8, col1 + 2);
+            printf("Codigo: %d\n", veiculo.codigo);
+            linhaCol(lin1 + 10, col1 + 2);
+            printf("Descricao: %s\n", veiculo.descricao);
+            linhaCol(lin1 + 12, col1 + 2);
+            printf("Modelo: %s\n", veiculo.modelo);
+            linhaCol(lin1 + 14, col1 + 2);
+            printf("Cor: %s\n", veiculo.cor);
+            linhaCol(lin1 + 16, col1 + 2);
+            printf("Placa: %s\n", veiculo.placa);
+            linhaCol(lin1 + 18, col1 + 2);
+            printf("Valor diario: %.2f\n", veiculo.valor_diaria);
+            linhaCol(lin1 + 20, col1 + 2);
+            printf("Ocupantes: %d\n", veiculo.ocupantes);
+            linhaCol(lin1 + 22, col1 + 2);
+            printf("Status: %s\n", veiculo.status);
+            linhaCol(lin1 + 24, col1 + 2);
+            veiculo_encontrado = 1;
+            fclose(arquivo_veiculos);
+            break;
+        }
+        else
+        {
+            printf("\nSo e possivel ativar veiculos que estao com o status de Desativado.\n");
+            printf("\nPressione Enter para continuar...\n");
+            while (getch() != '\r')
+                ;
+            fclose(arquivo_veiculos);
+            return;
+        }
+    }
+
+    setlocale(LC_ALL, "");
+
+    atualizar_status(codigo_veiculo, "Disponivel");
     fclose(arquivo_veiculos);
-    fclose(novo_arquivo);
+
+    printf("\nO veiculo exibido acima foi retivado com sucesso. Seu status agora e Disponivel.\n");
+    printf("\nPressione Enter para continuar...\n");
+    while (getch() != '\r')
+        ;
 }
 
 void exibir_veiculos_alugados()
@@ -339,23 +511,50 @@ void exibir_veiculos_alugados()
     }
 
     Veiculo veiculo;
+    setlocale(LC_ALL, "C");
 
+    int lin1 = 1, col1 = 1, lin2 = 26, col2 = 60;
     while (fread(&veiculo, sizeof(Veiculo), 1, arquivo_veiculos) == 1)
     {
         if (strcmp(veiculo.status, "Alugado") == 0)
         {
+            box(lin1, col1, lin2, col2);
+
+            linhaCol(lin1 + 2, col1 + 25);
+            printf("LOCA MAIS");
+            linhaCol(lin1 + 4, col1 + 25);
+            printf("VEICULOS");
+            linhaCol(lin1 + 6, col1 + 2);
+            drawLine(1, 55, 1);
+            linhaCol(lin1 + 8, col1 + 2);
             printf("Codigo: %d\n", veiculo.codigo);
+            linhaCol(lin1 + 10, col1 + 2);
             printf("Descricao: %s\n", veiculo.descricao);
+            linhaCol(lin1 + 12, col1 + 2);
             printf("Modelo: %s\n", veiculo.modelo);
+            linhaCol(lin1 + 14, col1 + 2);
             printf("Cor: %s\n", veiculo.cor);
+            linhaCol(lin1 + 16, col1 + 2);
             printf("Placa: %s\n", veiculo.placa);
+            linhaCol(lin1 + 18, col1 + 2);
             printf("Valor diario: %.2f\n", veiculo.valor_diaria);
+            linhaCol(lin1 + 20, col1 + 2);
             printf("Ocupantes: %d\n", veiculo.ocupantes);
+            linhaCol(lin1 + 22, col1 + 2);
             printf("Status: %s\n", veiculo.status);
-            drawLine(1, 60, 1);
+            linhaCol(lin1 + 24, col1 + 2);
+
+            for (int i = 0; i < 2; i++)
+            {
+                printf("\n");
+            }
+
+            lin1 = lin2 + 2;
+            lin2 = lin1 + 26;
             aux = 1;
         }
     }
+    setlocale(LC_ALL, " ");
     if (aux == 0)
     {
         printf("Nenhum veiculo esta alugado.\n");
@@ -382,23 +581,50 @@ void exibir_veiculos_em_manutencao()
     }
 
     Veiculo veiculo;
+    setlocale(LC_ALL, "C");
 
+    int lin1 = 1, col1 = 1, lin2 = 26, col2 = 60;
     while (fread(&veiculo, sizeof(Veiculo), 1, arquivo_veiculos) == 1)
     {
         if (strcmp(veiculo.status, "Manutencao") == 0)
         {
+            box(lin1, col1, lin2, col2);
+
+            linhaCol(lin1 + 2, col1 + 25);
+            printf("LOCA MAIS");
+            linhaCol(lin1 + 4, col1 + 25);
+            printf("VEICULOS");
+            linhaCol(lin1 + 6, col1 + 2);
+            drawLine(1, 55, 1);
+            linhaCol(lin1 + 8, col1 + 2);
             printf("Codigo: %d\n", veiculo.codigo);
+            linhaCol(lin1 + 10, col1 + 2);
             printf("Descricao: %s\n", veiculo.descricao);
+            linhaCol(lin1 + 12, col1 + 2);
             printf("Modelo: %s\n", veiculo.modelo);
+            linhaCol(lin1 + 14, col1 + 2);
             printf("Cor: %s\n", veiculo.cor);
+            linhaCol(lin1 + 16, col1 + 2);
             printf("Placa: %s\n", veiculo.placa);
+            linhaCol(lin1 + 18, col1 + 2);
             printf("Valor diario: %.2f\n", veiculo.valor_diaria);
+            linhaCol(lin1 + 20, col1 + 2);
             printf("Ocupantes: %d\n", veiculo.ocupantes);
+            linhaCol(lin1 + 22, col1 + 2);
             printf("Status: %s\n", veiculo.status);
-            drawLine(1, 60, 1);
+            linhaCol(lin1 + 24, col1 + 2);
+
+            for (int i = 0; i < 2; i++)
+            {
+                printf("\n");
+            }
+
+            lin1 = lin2 + 2;
+            lin2 = lin1 + 26;
             aux = 1;
         }
     }
+    setlocale(LC_ALL, " ");
     if (aux == 0)
     {
         printf("Nenhum veiculo esta em manutencao.\n");
@@ -425,23 +651,51 @@ void exibir_veiculos_disponiveis()
     }
 
     Veiculo veiculo;
+    setlocale(LC_ALL, "C");
+
+    int lin1 = 1, col1 = 1, lin2 = 26, col2 = 60;
 
     while (fread(&veiculo, sizeof(Veiculo), 1, arquivo_veiculos) == 1)
     {
         if (strcmp(veiculo.status, "Disponivel") == 0)
         {
+            box(lin1, col1, lin2, col2);
+
+            linhaCol(lin1 + 2, col1 + 25);
+            printf("LOCA MAIS");
+            linhaCol(lin1 + 4, col1 + 25);
+            printf("VEICULOS");
+            linhaCol(lin1 + 6, col1 + 2);
+            drawLine(1, 55, 1);
+            linhaCol(lin1 + 8, col1 + 2);
             printf("Codigo: %d\n", veiculo.codigo);
+            linhaCol(lin1 + 10, col1 + 2);
             printf("Descricao: %s\n", veiculo.descricao);
+            linhaCol(lin1 + 12, col1 + 2);
             printf("Modelo: %s\n", veiculo.modelo);
+            linhaCol(lin1 + 14, col1 + 2);
             printf("Cor: %s\n", veiculo.cor);
+            linhaCol(lin1 + 16, col1 + 2);
             printf("Placa: %s\n", veiculo.placa);
+            linhaCol(lin1 + 18, col1 + 2);
             printf("Valor diario: %.2f\n", veiculo.valor_diaria);
+            linhaCol(lin1 + 20, col1 + 2);
             printf("Ocupantes: %d\n", veiculo.ocupantes);
+            linhaCol(lin1 + 22, col1 + 2);
             printf("Status: %s\n", veiculo.status);
-            drawLine(1, 60, 1);
+            linhaCol(lin1 + 24, col1 + 2);
+
+            for (int i = 0; i < 2; i++)
+            {
+                printf("\n");
+            }
+
+            lin1 = lin2 + 2;
+            lin2 = lin1 + 26;
             aux = 1;
         }
     }
+    setlocale(LC_ALL, " ");
     if (aux == 0)
     {
         printf("Nenhum veiculo esta disponivel.\n");
@@ -454,6 +708,18 @@ void exibir_veiculos_disponiveis()
 
 void remover_veiculo_da_manutencao(int codigo_veiculo)
 {
+    const char *nome_arquivo = "veiculos.bin";
+    FILE *arquivo_veiculos = fopen(nome_arquivo, "rb");
+
+    if (arquivo_veiculos == NULL)
+    {
+        printf("Erro ao abrir o arquivo de veiculos para leitura.\n");
+        printf("\nPressione Enter para continuar...\n");
+        while (getch() != '\r')
+            ;
+        return;
+    }
+
     if (!veiculo_existe(codigo_veiculo))
     {
         printf("Veiculo nao encontrado.\n");
@@ -467,9 +733,52 @@ void remover_veiculo_da_manutencao(int codigo_veiculo)
         return;
     }
 
+    Veiculo veiculo;
+    int veiculo_encontrado = 0;
+
+    int lin1 = 2, col1 = 1, lin2 = 26, col2 = 60;
+
+    setlocale(LC_ALL, "C");
+
+    while (fread(&veiculo, sizeof(Veiculo), 1, arquivo_veiculos) == 1)
+    {
+        if (veiculo.codigo == codigo_veiculo)
+        {
+            box(lin1, col1, lin2, col2);
+            linhaCol(lin1 + 2, col1 + 25);
+            printf("LOCA MAIS");
+            linhaCol(lin1 + 4, col1 + 25);
+            printf("VEICULOS");
+            linhaCol(lin1 + 6, col1 + 2);
+            drawLine(1, 55, 1);
+            linhaCol(lin1 + 8, col1 + 2);
+            printf("Codigo: %d\n", veiculo.codigo);
+            linhaCol(lin1 + 10, col1 + 2);
+            printf("Descricao: %s\n", veiculo.descricao);
+            linhaCol(lin1 + 12, col1 + 2);
+            printf("Modelo: %s\n", veiculo.modelo);
+            linhaCol(lin1 + 14, col1 + 2);
+            printf("Cor: %s\n", veiculo.cor);
+            linhaCol(lin1 + 16, col1 + 2);
+            printf("Placa: %s\n", veiculo.placa);
+            linhaCol(lin1 + 18, col1 + 2);
+            printf("Valor diario: %.2f\n", veiculo.valor_diaria);
+            linhaCol(lin1 + 20, col1 + 2);
+            printf("Ocupantes: %d\n", veiculo.ocupantes);
+            linhaCol(lin1 + 22, col1 + 2);
+            printf("Status: %s\n", veiculo.status);
+            linhaCol(lin1 + 24, col1 + 2);
+            veiculo_encontrado = 1;
+            fclose(arquivo_veiculos);
+            break;
+        }
+    }
+
+    setlocale(LC_ALL, "");
     atualizar_status(codigo_veiculo, "Disponivel");
 
-    printf("\nO veiculo de codigo %d esta disponivel.\n", codigo_veiculo);
+    printf("\n");
+    printf("\nO veiculo exibido acima agora esta Disponivel.\n");
     printf("\nPressione Enter para continuar...\n");
     while (getch() != '\r')
         ;
@@ -477,6 +786,17 @@ void remover_veiculo_da_manutencao(int codigo_veiculo)
 
 void colocar_veiculo_em_manutencao(int codigo_veiculo)
 {
+    const char *nome_arquivo = "veiculos.bin";
+    FILE *arquivo_veiculos = fopen(nome_arquivo, "rb");
+
+    if (arquivo_veiculos == NULL)
+    {
+        printf("Erro ao abrir o arquivo de veiculos para leitura.\n");
+        printf("\nPressione Enter para continuar...\n");
+        while (getch() != '\r')
+            ;
+        return;
+    }
     if (!veiculo_existe(codigo_veiculo))
     {
         printf("Veiculo nao encontrado.\n");
@@ -489,9 +809,53 @@ void colocar_veiculo_em_manutencao(int codigo_veiculo)
     {
         return;
     }
+
+    Veiculo veiculo;
+    int veiculo_encontrado = 0;
+
+    int lin1 = 2, col1 = 1, lin2 = 26, col2 = 60;
+
+    setlocale(LC_ALL, "C");
+
+    while (fread(&veiculo, sizeof(Veiculo), 1, arquivo_veiculos) == 1)
+    {
+        if (veiculo.codigo == codigo_veiculo)
+        {
+            box(lin1, col1, lin2, col2);
+            linhaCol(lin1 + 2, col1 + 25);
+            printf("LOCA MAIS");
+            linhaCol(lin1 + 4, col1 + 25);
+            printf("VEICULOS");
+            linhaCol(lin1 + 6, col1 + 2);
+            drawLine(1, 55, 1);
+            linhaCol(lin1 + 8, col1 + 2);
+            printf("Codigo: %d\n", veiculo.codigo);
+            linhaCol(lin1 + 10, col1 + 2);
+            printf("Descricao: %s\n", veiculo.descricao);
+            linhaCol(lin1 + 12, col1 + 2);
+            printf("Modelo: %s\n", veiculo.modelo);
+            linhaCol(lin1 + 14, col1 + 2);
+            printf("Cor: %s\n", veiculo.cor);
+            linhaCol(lin1 + 16, col1 + 2);
+            printf("Placa: %s\n", veiculo.placa);
+            linhaCol(lin1 + 18, col1 + 2);
+            printf("Valor diario: %.2f\n", veiculo.valor_diaria);
+            linhaCol(lin1 + 20, col1 + 2);
+            printf("Ocupantes: %d\n", veiculo.ocupantes);
+            linhaCol(lin1 + 22, col1 + 2);
+            printf("Status: %s\n", veiculo.status);
+            linhaCol(lin1 + 24, col1 + 2);
+            veiculo_encontrado = 1;
+            fclose(arquivo_veiculos);
+            break;
+        }
+    }
+
+    setlocale(LC_ALL, "");
+
     atualizar_status(codigo_veiculo, "Manutencao");
 
-    printf("\nO veiculo de codigo %d foi enviado para a manutencao.\n", codigo_veiculo);
+    printf("\nO veiculo exibido acima foi enviado para a manutencao.\n");
     printf("\nPressione Enter para continuar...\n");
     while (getch() != '\r')
         ;

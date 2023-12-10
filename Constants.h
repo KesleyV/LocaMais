@@ -2,8 +2,24 @@
 #ifndef CONSTANTS_H
 #define CONSTANTS_H
 
-#define MAX_CLIENTES 100
-#define MAX_VEICULOS 100
-#define MAX_LOCACOES 100
+typedef struct
+{
+    int codigo;
+} CodigoCliente;
+
+typedef struct
+{
+    int codigo;
+} CodigoLocacao;
+
+typedef struct 
+{
+    int codigo;
+} CodigoVeiculo;
+
+typedef struct
+{
+    float total;
+} Total;
 
 #endif
