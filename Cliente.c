@@ -62,9 +62,9 @@ int verificaLocacao(int codigo_cliente)
     FILE *arquivo_locacao = fopen("locacoes.bin", "rb");
     if (arquivo_locacao == NULL)
     {
-        fclose(arquivo_locacao);
         return 0;
     }
+
     Locacao locacao;
 
     while (fread(&locacao, sizeof(Locacao), 1, arquivo_locacao) == 1)
@@ -74,12 +74,10 @@ int verificaLocacao(int codigo_cliente)
             fclose(arquivo_locacao);
             return 1;
         }
-        else
-        {
-            fclose(arquivo_locacao);
-            return 0;
-        }
     }
+
+    fclose(arquivo_locacao);
+    return 0;
 }
 
 int atualizar_status_cliente(int codigo_cliente, const char *novo_status)
@@ -306,52 +304,68 @@ void desativar_cliente(int codigo_cliente)
         printf("Pressione Enter para continuar...");
         while (getch() != '\r')
             ;
+        fclose(arquivo_original);
         return;
     }
 
     Cliente cliente;
 
-    setlocale(LC_ALL, "C");
-
-    int verifica_locacao = verificaLocacao(cliente.codigo);
-
     while (fread(&cliente, sizeof(Cliente), 1, arquivo_original) == 1)
     {
-        if (strcmp(cliente.status, "Ativo") == 0)
+        if (codigo_cliente == cliente.codigo)
         {
-            int lin1 = 2, col1 = 1, lin2 = 22, col2 = 60;
-            box(lin1, col1, lin2, col2);
 
-            linhaCol(lin1 + 2, col1 + 25);
-            printf("LOCA MAIS");
-            linhaCol(lin1 + 4, col1 + 26);
-            printf("CLIENTE");
-            linhaCol(lin1 + 6, col1 + 2);
-            drawLine(1, 56, 1);
-            linhaCol(lin1 + 8, col1 + 2);
-            printf("Codigo: %d\n", cliente.codigo);
-            linhaCol(lin1 + 10, col1 + 2);
-            printf("Nome: %s\n", cliente.nome);
-            linhaCol(lin1 + 12, col1 + 2);
-            printf("Endereco: %s\n", cliente.endereco);
-            linhaCol(lin1 + 14, col1 + 2);
-            printf("Telefone: %s\n", cliente.telefone);
-            linhaCol(lin1 + 16, col1 + 2);
-            printf("Pontos de fidelidade: %d\n", cliente.pontos_fidelidade);
-            linhaCol(lin1 + 18, col1 + 2);
-            printf("Status: %s", cliente.status);
-            linhaCol(lin1 + 20, col1 + 2);
-            fclose(arquivo_original);
-            break;
-        }
-        else
-        {
-            printf("\nNao e possivel desativar um cliente que ja esta desativado.\n");
-            printf("\nPressione Enter para continuar...\n");
-            while (getch() != '\r')
-                ;
-            fclose(arquivo_original);
-            return;
+            if (strcmp(cliente.status, "Ativo") == 0)
+            {
+                if (!verificaLocacao(cliente.codigo))
+                {
+                    setlocale(LC_ALL, "C");
+                    int lin1 = 2, col1 = 1, lin2 = 22, col2 = 60;
+                    box(lin1, col1, lin2, col2);
+
+                    linhaCol(lin1 + 2, col1 + 25);
+                    printf("LOCA MAIS");
+                    linhaCol(lin1 + 4, col1 + 26);
+                    printf("CLIENTE");
+                    linhaCol(lin1 + 6, col1 + 2);
+                    drawLine(1, 56, 1);
+                    linhaCol(lin1 + 8, col1 + 2);
+                    printf("Codigo: %d\n", cliente.codigo);
+                    linhaCol(lin1 + 10, col1 + 2);
+                    printf("Nome: %s\n", cliente.nome);
+                    linhaCol(lin1 + 12, col1 + 2);
+                    printf("Endereco: %s\n", cliente.endereco);
+                    linhaCol(lin1 + 14, col1 + 2);
+                    printf("Telefone: %s\n", cliente.telefone);
+                    linhaCol(lin1 + 16, col1 + 2);
+                    printf("Pontos de fidelidade: %d\n", cliente.pontos_fidelidade);
+                    linhaCol(lin1 + 18, col1 + 2);
+                    printf("Status: %s", cliente.status);
+                    linhaCol(lin1 + 20, col1 + 2);
+                    fclose(arquivo_original);
+                    setlocale(LC_ALL, "");
+                    break;
+                }
+                else
+                {
+                    printf("\nNao foi possivel atualizar o status do cliente pois o mesmo tem uma locacao ativa em seu nome.\n");
+                    printf("\n %d \n", verificaLocacao(cliente.codigo));
+                    printf("\nPressione Enter para continuar...\n");
+                    while (getch() != '\r')
+                        ;
+                    fclose(arquivo_original);
+                    return;
+                }
+            }
+            else if (strcmp(cliente.status, "Desativado") == 0)
+            {
+                printf("\nNao e possivel desativar um cliente que ja esta desativado.\n");
+                printf("\nPressione Enter para continuar...\n");
+                while (getch() != '\r')
+                    ;
+                fclose(arquivo_original);
+                return;
+            }
         }
     }
 
@@ -361,16 +375,9 @@ void desativar_cliente(int codigo_cliente)
         printf("\nPressione Enter para continuar...\n");
         while (getch() != '\r')
             ;
+        fclose(arquivo_original);
+        return;
     }
-    else
-    {
-        printf("\nNao foi possivel atualizar o status do cliente acima pois o mesmo tem uma locacao ativa em seu nome.\n");
-        printf("\nPressione Enter para continuar...\n");
-        while (getch() != '\r')
-            ;
-    }
-
-    setlocale(LC_ALL, "");
 
     fclose(arquivo_original);
 }
@@ -404,40 +411,43 @@ void reativar_cliente(int codigo_cliente)
 
     while (fread(&cliente, sizeof(Cliente), 1, arquivo_original) == 1)
     {
-        if (strcmp(cliente.status, "Desativado") == 0)
+        if (codigo_cliente == cliente.codigo)
         {
-            box(lin1, col1, lin2, col2);
+            if (strcmp(cliente.status, "Desativado") == 0)
+            {
+                box(lin1, col1, lin2, col2);
 
-            linhaCol(lin1 + 2, col1 + 25);
-            printf("LOCA MAIS");
-            linhaCol(lin1 + 4, col1 + 20);
-            printf("CLIENTE");
-            linhaCol(lin1 + 6, col1 + 2);
-            drawLine(1, 56, 1);
-            linhaCol(lin1 + 8, col1 + 2);
-            printf("Codigo: %d\n", cliente.codigo);
-            linhaCol(lin1 + 10, col1 + 2);
-            printf("Nome: %s\n", cliente.nome);
-            linhaCol(lin1 + 12, col1 + 2);
-            printf("Endereco: %s\n", cliente.endereco);
-            linhaCol(lin1 + 14, col1 + 2);
-            printf("Telefone: %s\n", cliente.telefone);
-            linhaCol(lin1 + 16, col1 + 2);
-            printf("Pontos de fidelidade: %d\n", cliente.pontos_fidelidade);
-            linhaCol(lin1 + 18, col1 + 2);
-            printf("Status: %s", cliente.status);
-            linhaCol(lin1 + 20, col1 + 2);
-            fclose(arquivo_original);
-            break;
-        }
-        else
-        {
-            printf("\nNao e possivel ativar um cliente que ja esta Ativo.\n");
-            printf("\nPressione Enter para continuar...\n");
-            while (getch() != '\r')
-                ;
-            fclose(arquivo_original);
-            return;
+                linhaCol(lin1 + 2, col1 + 25);
+                printf("LOCA MAIS");
+                linhaCol(lin1 + 4, col1 + 20);
+                printf("CLIENTE");
+                linhaCol(lin1 + 6, col1 + 2);
+                drawLine(1, 56, 1);
+                linhaCol(lin1 + 8, col1 + 2);
+                printf("Codigo: %d\n", cliente.codigo);
+                linhaCol(lin1 + 10, col1 + 2);
+                printf("Nome: %s\n", cliente.nome);
+                linhaCol(lin1 + 12, col1 + 2);
+                printf("Endereco: %s\n", cliente.endereco);
+                linhaCol(lin1 + 14, col1 + 2);
+                printf("Telefone: %s\n", cliente.telefone);
+                linhaCol(lin1 + 16, col1 + 2);
+                printf("Pontos de fidelidade: %d\n", cliente.pontos_fidelidade);
+                linhaCol(lin1 + 18, col1 + 2);
+                printf("Status: %s", cliente.status);
+                linhaCol(lin1 + 20, col1 + 2);
+                fclose(arquivo_original);
+                break;
+            }
+            else if (strcmp(cliente.status, "Ativo") == 0)
+            {
+                printf("\nNao e possivel ativar um cliente que ja esta Ativo.\n");
+                printf("\nPressione Enter para continuar...\n");
+                while (getch() != '\r')
+                    ;
+                fclose(arquivo_original);
+                return;
+            }
         }
     }
 

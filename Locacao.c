@@ -12,30 +12,8 @@
 #include <io.h>
 
 // funções auxiliares
-int dias_no_mes(int mes, int ano)
-{
-    switch (mes)
-    {
-    case 4:
-    case 6:
-    case 9:
-    case 11:
-        return 30;
-    case 2:
-        if ((ano % 4 == 0 && ano % 100 != 0) || (ano % 400 == 0))
-        {
-            return 29;
-        }
-        else
-        {
-            return 28;
-        }
-    default:
-        return 31;
-    }
-}
 
-int diferenca_dias(const char *data_retirada, const char *data_devolucao)
+int diferenca_dias_entrada(const char *data_retirada, const char *data_devolucao)
 {
     struct tm tm_retirada = {0};
     struct tm tm_devolucao = {0};
@@ -45,7 +23,6 @@ int diferenca_dias(const char *data_retirada, const char *data_devolucao)
 
     tm_retirada.tm_year -= 1900;
     tm_devolucao.tm_year -= 1900;
-
     tm_retirada.tm_mon -= 1;
     tm_devolucao.tm_mon -= 1;
 
@@ -54,19 +31,6 @@ int diferenca_dias(const char *data_retirada, const char *data_devolucao)
 
     double diferenca_segundos = difftime(t_devolucao, t_retirada);
     int diferenca_dias = diferenca_segundos / (60 * 60 * 24);
-
-    while (diferenca_dias > dias_no_mes(tm_retirada.tm_mon + 1, tm_retirada.tm_year + 1900))
-    {
-        tm_retirada.tm_mday = 1;
-        tm_retirada.tm_mon++;
-        if (tm_retirada.tm_mon > 11)
-        {
-            tm_retirada.tm_mon = 0;
-            tm_retirada.tm_year++;
-        }
-        t_retirada = mktime(&tm_retirada);
-        diferenca_dias = difftime(t_devolucao, t_retirada) / (60 * 60 * 24);
-    }
 
     return diferenca_dias;
 }
@@ -244,15 +208,14 @@ float calcular_valor_aluguel(int quantidade_dias, float valor_diaria, int seguro
     return valor_aluguel;
 }
 
-void calcular_pontos_fidelidade(int codigo_cliente, int diarias)
+int calcular_pontos_fidelidade(int codigo_cliente, int diarias)
 {
     FILE *arquivo_clientes = fopen("clientes.bin", "rb+");
 
     if (arquivo_clientes == NULL)
     {
-        printf("Erro ao abrir arquivo de clientes.\n");
-        fclose(arquivo_clientes);
-        return;
+        perror("Erro ao abrir arquivo de clientes");
+        return 0;
     }
 
     fseek(arquivo_clientes, 0, SEEK_SET);
@@ -269,7 +232,7 @@ void calcular_pontos_fidelidade(int codigo_cliente, int diarias)
             fwrite(&cliente, sizeof(Cliente), 1, arquivo_clientes);
 
             fclose(arquivo_clientes);
-            return;
+            return cliente.pontos_fidelidade;
         }
     }
 
@@ -627,7 +590,7 @@ void premiar_clientes(int codigo_cliente)
     }
 
     Cliente cliente;
-    int lin1 = 12, col1 = 1, lin2 = 34, col2 = 60;
+    int lin1 = 12, col1 = 1, lin2 = 44, col2 = 60;
 
     while (fread(&cliente, sizeof(Cliente), 1, file_clientes) == 1)
     {
@@ -637,26 +600,36 @@ void premiar_clientes(int codigo_cliente)
             box(lin1, col1, lin2, col2);
             linhaCol(lin1 + 2, col1 + 25);
             printf("LOCA MAIS");
-            linhaCol(lin1 + 4, col1 + 20);
+            linhaCol(lin1 + 4, col1 + 22);
             printf("CLIENTE PREMIADO");
             linhaCol(lin1 + 6, col1 + 2);
             drawLine(1, 55, 1);
             linhaCol(lin1 + 8, col1 + 2);
-            printf("Codigo: %d", cliente.codigo);
+            printf("O cliente ganhou 10%% de desconto no valor da locacao.");
             linhaCol(lin1 + 10, col1 + 2);
-            printf("Nome: %s", cliente.nome);
+            drawLine(1, 55, 1);
             linhaCol(lin1 + 12, col1 + 2);
-            printf("Endereco: %s", cliente.endereco);
+            printf("Codigo: %d", cliente.codigo);
             linhaCol(lin1 + 14, col1 + 2);
-            printf("Telefone: %s", cliente.telefone);
+            printf("Nome: %s", cliente.nome);
             linhaCol(lin1 + 16, col1 + 2);
+            printf("Endereco: %s", cliente.endereco);
+            linhaCol(lin1 + 18, col1 + 2);
+            printf("Telefone: %s", cliente.telefone);
+            linhaCol(lin1 + 20, col1 + 2);
+            printf("Situacao do cliente: %s", cliente.status);
+            linhaCol(lin1 + 22, col1 + 2);
             printf("Pontos de fidelidade conquistados: %d", cliente.pontos_fidelidade);
             int pontos_restantes = debitar_pontos_fidelidade(cliente.codigo);
-            linhaCol(lin1 + 18, col1 + 2);
+            linhaCol(lin1 + 24, col1 + 2);
+            drawLine(1, 55, 1);
+            linhaCol(lin1 + 26, col1 + 2);
+            printf("Pontos de fidelidade debitados: 500");
+            linhaCol(lin1 + 28, col1 + 2);
+            drawLine(1, 55, 1);
+            linhaCol(lin1 + 30, col1 + 2);
             printf("Pontos de fidelidade restantes: %d", pontos_restantes);
-            linhaCol(lin1 + 20, col1 + 2);
-            printf("O cliente ganhou 10%% de desconto no valor da locacao.");
-            linhaCol(lin1 + 34, col1 + 2);
+            linhaCol(lin1 + 44, col1 + 2);
             setlocale(LC_ALL, "");
             habilitaDesconto(cliente.codigo);
         }
@@ -747,17 +720,18 @@ void cadastrar_locacao(const char *data_retirada, const char *data_devolucao, in
     nova_locacao.seguro = seguro;
     nova_locacao.codigo_cliente = codigo_cliente;
     nova_locacao.codigo_veiculo = veiculo_disponivel;
-    nova_locacao.quantidade_dias = diferenca_dias(data_retirada, data_devolucao);
+    nova_locacao.quantidade_dias = diferenca_dias_entrada(data_retirada, data_devolucao);
     nova_locacao.valor_aluguel = calcular_valor_aluguel(nova_locacao.quantidade_dias, diaria, nova_locacao.seguro);
     strcpy(nova_locacao.status, "Ativa");
 
     printf("\nLocacao de numero %d realizada com sucesso\n", nova_locacao.codigo);
 
-    calcular_pontos_fidelidade(codigo_cliente, nova_locacao.quantidade_dias);
+    int pontos_atuais = calcular_pontos_fidelidade(codigo_cliente, nova_locacao.quantidade_dias);
     int pontos_adicionados = nova_locacao.quantidade_dias * 10;
 
     printf("\nForam adicionados %d pontos de fidelidade ao cliente %s de codigo %d.\n", pontos_adicionados, cliente_encontrado.nome, cliente_encontrado.codigo);
-    if (cliente_encontrado.pontos_fidelidade >= 500)
+
+    if (pontos_atuais >= 500)
     {
         premiar_clientes(cliente_encontrado.codigo);
     }
@@ -894,7 +868,7 @@ void dar_baixa_locacao(int codigo_locacao)
         subtotal -= subtotal * 0.10;
     }
 
-    int dif_dias = diferenca_dias(locacao_modificada.data_devolucao, data_entrega);
+    int dif_dias = diferenca_dias_entrada(locacao_modificada.data_devolucao, data_entrega);
     if (dif_dias > 0)
     {
         valor_multa_por_dias = (dif_dias * 30) + (dif_dias * valor_diaria);
@@ -1010,7 +984,7 @@ void exibir_todas_locacoes_ativas()
                     linhaCol(lin1 + 32, col1 + 2);
                     printf("Pontos de fidelidade: %d\n", cliente_atual.pontos_fidelidade);
                     linhaCol(lin1 + 34, col1 + 2);
-                    printf("Desconto: %s\n", (cliente_atual.desconto == 1) ? "Sim (10%%)" : "Nao");
+                    puts((cliente_atual.desconto == 1) ? "Desconto: 10% de desconto nessa locacao." : "Desconto: Nao");
                     linhaCol(lin1 + 36, col1 + 2);
                 }
             }
@@ -1164,7 +1138,7 @@ void mostrar_locacoes_ativas_cliente(int codigo_cliente)
                         linhaCol(lin1 + 32, col1 + 2);
                         printf("Pontos de fidelidade: %d\n", cliente_atual.pontos_fidelidade);
                         linhaCol(lin1 + 34, col1 + 2);
-                        printf("Desconto: %s\n", (cliente_atual.desconto == 1) ? "Sim (10%%)" : "Nao");
+                        puts((cliente_atual.desconto == 1) ? "Desconto: 10% de desconto nessa locacao." : "Desconto: Nao");
                         linhaCol(lin1 + 36, col1 + 2);
                     }
                 }
@@ -1426,7 +1400,7 @@ void exibirRelatorioFaturamentoCliente(int codigo_cliente)
                 }
 
                 lin1 = lin2 + 2;
-                lin2 = lin1 + 42;
+                lin2 = lin1 + 44;
             }
         }
     }

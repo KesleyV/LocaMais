@@ -45,10 +45,11 @@ enum corFundo
 
 void linhaCol(int lin, int col);
 void box(int lin1, int col1, int lin2, int col2);
-int estiliza_menu(int lin1, int col1, int qtd, char lista[3][40]);
+int estiliza_menu( int qtd, char lista[3][40]);
 void textColor(int letras, int fundo);
 void drawLine(int start, int end, int width);
 void limpar_console();
-void exibir_mensagem(int lin, int col, const char *mensagem, const char *parametro);
+void setFullScreen();
+void manualPosition(int qtd, char lista[qtd][100]);
 
 #endif

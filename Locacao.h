@@ -41,7 +41,7 @@ void cadastrar_locacao(const char *data_retirada, const char *data_devolucao, in
 void dar_baixa_locacao(int codigo_locacao);
 void mostrar_locacoes_ativas_cliente(int codigo_cliente);
 int diferenca_dias(const char *data_retirada, const char *data_devolucao);
-void calcular_pontos_fidelidade(int codigo_cliente, int diarias);
+int calcular_pontos_fidelidade(int codigo_cliente, int diarias);
 void remover_locacao(int index_locacao);
 void exibir_todas_locacoes_ativas();
 void exibirTotalGeral();

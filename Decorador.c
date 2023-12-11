@@ -21,7 +21,6 @@ void linhaCol(int lin, int col)
 {
     SetConsoleCursorPosition(GetStdHandle(STD_OUTPUT_HANDLE), (COORD){col - 1, lin - 1}); // coorddenada na tela
 
-    // funcao para deixar o cursor invisivel
     HANDLE consoleHandle = GetStdHandle(STD_OUTPUT_HANDLE);
     CONSOLE_CURSOR_INFO info;
     info.dwSize = 100;
@@ -33,14 +32,12 @@ void box(int lin1, int col1, int lin2, int col2)
 {
     int i, j, tamlin, tamcol;
 
-    // achar o tamanho do box
     tamlin = lin2 - lin1;
     tamcol = col2 - col1;
 
-    // Monta o Box
 
     for (i = col1; i <= col2; i++)
-    { // linhas
+    { 
         linhaCol(lin1, i);
         printf("%c", 196);
         linhaCol(lin2, i);
@@ -48,7 +45,7 @@ void box(int lin1, int col1, int lin2, int col2)
     }
 
     for (i = lin1; i <= lin2; i++)
-    { // colunas
+    { 
         linhaCol(i, col1);
         printf("%c", 179);
         linhaCol(i, col2);
@@ -62,7 +59,7 @@ void box(int lin1, int col1, int lin2, int col2)
             printf(" ");
         }
     }
-    // Posição dos cantos
+    
     linhaCol(lin1, col1);
     printf("%c", 218);
     linhaCol(lin1, col2);
@@ -73,13 +70,11 @@ void box(int lin1, int col1, int lin2, int col2)
     printf("%c", 217);
 }
 
-int estiliza_menu(int lin1, int col1, int qtd, char lista[3][40])
+int estiliza_menu(int qtd, char lista[qtd][40])
 {
-    int opc = 1, lin2, col2, linha, i, tamMaxItem, tecla;
+    int opc = 1, lin1, col1, lin2, col2, linha, i, tamMaxItem, tecla;
 
-    // calcula as coordenadas
     tamMaxItem = strlen(lista[0]);
-    // tamanho maximo do item
     for (i = 1; i < qtd; i++)
     {
         if (strlen(lista[i]) > tamMaxItem)
@@ -87,18 +82,24 @@ int estiliza_menu(int lin1, int col1, int qtd, char lista[3][40])
             tamMaxItem = strlen(lista[i]);
         }
     }
-    lin2 = lin1 + (qtd * 2 + 2);  // Aumente o multiplicador para aumentar a altura da caixa
-    col2 = col1 + tamMaxItem + 4; // Ajuste conforme necessário
 
-    // Monta Tela
+    CONSOLE_SCREEN_BUFFER_INFO csbi;
+    GetConsoleScreenBufferInfo(GetStdHandle(STD_OUTPUT_HANDLE), &csbi);
+    int screenWidth = csbi.srWindow.Right - csbi.srWindow.Left + 1;
+    int screenHeight = csbi.srWindow.Bottom - csbi.srWindow.Top + 1;
+
+    lin1 = (screenHeight - (qtd * 2 + 2)) / 2;
+    col1 = (screenWidth - (tamMaxItem + 4)) / 2;
+    lin2 = lin1 + (qtd * 2 + 2);
+    col2 = col1 + tamMaxItem + 4;
+
     textColor(YELLOW, _BLACK);
     setlocale(LC_ALL, "C");
     box(lin1, col1, lin2, col2);
     setlocale(LC_ALL, "");
-    // laço das opcões
+
     while (1)
     {
-
         linha = lin1 + 2;
         for (i = 0; i < qtd; i++)
         {
@@ -111,41 +112,32 @@ int estiliza_menu(int lin1, int col1, int qtd, char lista[3][40])
             linha += 2;
         }
 
-        // Aguarda tecla
         linhaCol(1, 1);
         tecla = getch();
         linhaCol(22, 1);
-        // Opção
+
         if (tecla == 27)
-        { // ESC
+        {
             opc = 0;
             break;
         }
         else if (tecla == 13)
-        { // ENTER
+        {
             break;
         }
-        // Seta para cima
         else if (tecla == 72)
-        { // se possivel seleciona o item anterior - seta para cima
+        {
             if (opc > 1)
-                opc--; // se opcao for maior que 1, pode voltar
+                opc--;
         }
         else if (tecla == 80)
-        { // seta para baixo
+        {
             if (opc < qtd)
-                opc++; // Se opcao for menor que quantidade de itens, posso avançar
+                opc++;
         }
     }
     return opc;
 }
-
-void exibir_mensagem(int lin, int col, const char *mensagem, const char *parametro)
-{
-    linhaCol(lin, col);
-    printf(mensagem, parametro);
-}
-
 
 void drawLine(int start, int end, int width) {
     setlocale(LC_ALL, "C");
@@ -158,19 +150,51 @@ void drawLine(int start, int end, int width) {
     setlocale(LC_ALL, "");
 }
 
-void drawBoxAroundText(const char *text) {
-    int length = strlen(text) + 4;  // Adiciona espaço para a margem
-    printf("+");
-    for (int i = 0; i < length; i++) {
-        printf("-");
+void setFullScreen() {
+    HWND hwnd = GetConsoleWindow();
+
+    MONITORINFO mi;
+    mi.cbSize = sizeof(mi);
+    GetMonitorInfo(MonitorFromWindow(hwnd, MONITOR_DEFAULTTOPRIMARY), &mi);
+
+    SetWindowPos(hwnd, HWND_TOP, mi.rcMonitor.left, mi.rcMonitor.top, 
+                 mi.rcMonitor.right - mi.rcMonitor.left, 
+                 mi.rcMonitor.bottom - mi.rcMonitor.top, SWP_SHOWWINDOW);
+}
+
+void manualPosition(int qtd, char lista[qtd][100]) {
+    int lin1, col1, lin2, col2, linha, i, tamMaxItem;
+
+    tamMaxItem = strlen(lista[0]);
+    for (i = 1; i < qtd; i++) {
+        if (strlen(lista[i]) > tamMaxItem) {
+            tamMaxItem = strlen(lista[i]);
+        }
     }
-    printf("+\n");
-    
-    printf("| %s |\n", text);
-    
-    printf("+");
-    for (int i = 0; i < length; i++) {
-        printf("-");
+
+    CONSOLE_SCREEN_BUFFER_INFO csbi;
+    GetConsoleScreenBufferInfo(GetStdHandle(STD_OUTPUT_HANDLE), &csbi);
+    int screenWidth = csbi.srWindow.Right - csbi.srWindow.Left + 1;
+    int screenHeight = csbi.srWindow.Bottom - csbi.srWindow.Top + 1;
+
+    // Ajuste a margem superior para controlar a posição vertical
+    int margemSuperior = 5; // Ajuste este valor conforme necessário
+
+    lin1 = margemSuperior;
+    col1 = (screenWidth - (tamMaxItem + 4)) / 2;
+    lin2 = lin1 + (qtd * 2 + 2);
+    col2 = col1 + tamMaxItem + 4;
+
+    textColor(YELLOW, 0);
+    setlocale(LC_ALL, "C");
+    box(lin1, col1, lin2, col2);
+    setlocale(LC_ALL, "");
+
+    linha = lin1 + 2;
+    for (i = 0; i < qtd; i++) {
+        textColor(YELLOW, 0);
+        linhaCol(linha, col1 + 2);
+        printf("%s", lista[i]);
+        linha += 2;
     }
-    printf("+\n");
 }

@@ -115,23 +115,40 @@ int validarTelefone(const char *telefone)
 // função principal
 void menu()
 {
+
     int opcao = 0;
     while (opcao != 4)
     {
         limpar_console();
+
+        char manual[5][100] = {
+            "BEM VINDO A LOCA MAIS",
+            "PARA NAVEGAR NO MENU UTILIZE AS SETAS DO SEU TECLADO",
+            "PARA ACESSAR UMA OPCAO TECLE ENTER",
+            "PARA VOLTAR NO MENU ANTERIOR UTILIZE A TECLA ESC OU A OPCAO VOLTAR DOS MENUS"};
+        manualPosition(4, manual);
+
         char opcoes_menu[5][40] = {
             "MENU CLIENTE",
             "MENU VEICULO",
             "MENU LOCACAO",
             "SAIR"};
 
-        opcao = estiliza_menu(2, 2, 4, opcoes_menu);
+        opcao = estiliza_menu(4, opcoes_menu);
 
         switch (opcao)
         {
         case 1:
         {
             limpar_console();
+
+            char manual[5][100] = {
+                "BEM VINDO A LOCA MAIS",
+                "PARA NAVEGAR NO MENU UTILIZE AS SETAS DO SEU TECLADO",
+                "PARA ACESSAR UMA OPCAO TECLE ENTER",
+                "PARA VOLTAR NO MENU ANTERIOR UTILIZE A TECLA ESC OU A OPCAO VOLTAR DOS MENUS"};
+            manualPosition(4, manual);
+
             char opcoes_cliente[7][40] = {
                 "Cadastrar Cliente",
                 "Exibir todos os clientes",
@@ -140,7 +157,7 @@ void menu()
                 "Reativar cliente",
                 "Voltar"};
 
-            int opcao_cliente = estiliza_menu(2, 2, 6, opcoes_cliente);
+            int opcao_cliente = estiliza_menu(6, opcoes_cliente);
 
             switch (opcao_cliente)
             {
@@ -313,6 +330,14 @@ void menu()
         case 2:
         {
             limpar_console();
+
+            char manual[5][100] = {
+                "BEM VINDO A LOCA MAIS",
+                "PARA NAVEGAR NO MENU UTILIZE AS SETAS DO SEU TECLADO",
+                "PARA ACESSAR UMA OPCAO TECLE ENTER",
+                "PARA VOLTAR NO MENU ANTERIOR UTILIZE A TECLA ESC OU A OPCAO VOLTAR DOS MENUS"};
+            manualPosition(4, manual);
+
             char opcoes_veiculo[13][40] = {
                 "Cadastrar Veiculo",
                 "Exibir todos os veiculos",
@@ -326,7 +351,7 @@ void menu()
                 "Enviar veiculo para manutencao",
                 "Voltar"};
 
-            int opcao_veiculo = estiliza_menu(2, 2, 11, opcoes_veiculo);
+            int opcao_veiculo = estiliza_menu(11, opcoes_veiculo);
 
             switch (opcao_veiculo)
             {
@@ -616,12 +641,6 @@ void menu()
             case 11:
             {
                 limpar_console();
-                exibir_veiculos_disponiveis();
-                break;
-            }
-            case 12:
-            {
-                limpar_console();
                 break;
             }
             default:
@@ -636,6 +655,14 @@ void menu()
         case 3:
         {
             limpar_console();
+
+            char manual[5][100] = {
+                "BEM VINDO A LOCA MAIS",
+                "PARA NAVEGAR NO MENU UTILIZE AS SETAS DO SEU TECLADO",
+                "PARA ACESSAR UMA OPCAO TECLE ENTER",
+                "PARA VOLTAR NO MENU ANTERIOR UTILIZE A TECLA ESC OU A OPCAO VOLTAR DOS MENUS"};
+            manualPosition(4, manual);
+
             char opcoes_locacao[9][40] = {
                 "Cadastrar Locacao",
                 "Exibir locacoes ativas",
@@ -646,7 +673,7 @@ void menu()
                 "Exibir total faturado",
                 "Voltar"};
 
-            int opcao_locacao = estiliza_menu(2, 2, 8, opcoes_locacao);
+            int opcao_locacao = estiliza_menu(8, opcoes_locacao);
 
             switch (opcao_locacao)
             {
