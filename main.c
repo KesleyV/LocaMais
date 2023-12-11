@@ -5,8 +5,6 @@
 int main()
 {
     setFullScreen();
-    printf("Programa iniciado.\n");
-
     menu();
     return 0;
 }
